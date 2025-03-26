@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import type { Tarea } from "@/types"
 import { formatDate, getStatusColor } from "@/lib/utils"
 import { Calendar, Edit, Trash, User } from "lucide-react"
+import { getUsuarioNombreById } from "@/lib/tareasData"
 
 interface TareaCardProps {
     tarea: Tarea
@@ -69,7 +70,7 @@ export function TareaCard({ tarea, onEdit, onDelete, showUsuario = false }: Tare
                 {showUsuario && (
                     <div className="flex items-center text-xs text-muted-foreground">
                         <User className="h-3 w-3 mr-1" />
-                        {tarea.asignadoA}
+                        {getUsuarioNombreById(tarea.asignadoA)}
                     </div>
                 )}
             </CardFooter>

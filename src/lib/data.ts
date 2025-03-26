@@ -169,6 +169,39 @@ export const seguimientos: Seguimiento[] = [
         clienteId: "1",
         usuarioId: "2",
     },
+    // Nuevos seguimientos
+    {
+        id: "3",
+        tipo: "llamada",
+        fecha: "2025-03-25T14:30:00Z",
+        comentarios: "Seguimiento de propuesta comercial. Cliente solicita ajustes en precios.",
+        clienteId: "2",
+        usuarioId: "1",
+    },
+    {
+        id: "4",
+        tipo: "reunión",
+        fecha: "2025-03-26T10:00:00Z",
+        comentarios: "Reunión para presentar nuevos servicios y discutir renovación de contrato.",
+        clienteId: "3",
+        usuarioId: "2",
+    },
+    {
+        id: "5",
+        tipo: "correo",
+        fecha: "2025-03-27T08:15:00Z",
+        comentarios: "Envío de cotización actualizada según lo solicitado en última llamada.",
+        clienteId: "4",
+        usuarioId: "1",
+    },
+    {
+        id: "6",
+        tipo: "reunión",
+        fecha: "2025-03-29T16:00:00Z",
+        comentarios: "Reunión de cierre con equipo directivo del cliente.",
+        clienteId: "5",
+        usuarioId: "2",
+    },
 ]
 
 // Notas de ejemplo
@@ -185,6 +218,35 @@ export const notas: Nota[] = [
         contenido: "Requiere atención especial en temas de soporte técnico.",
         fecha: "2023-06-09T10:25:00Z",
         clienteId: "1",
+        usuarioId: "1",
+    },
+    // Nuevas notas
+    {
+        id: "3",
+        contenido: "Cliente interesado en módulo de gestión de inventario. Preparar demo para próxima reunión.",
+        fecha: "2025-03-24T09:30:00Z",
+        clienteId: "2",
+        usuarioId: "2",
+    },
+    {
+        id: "4",
+        contenido: "Revisar historial de tickets de soporte antes de la reunión del viernes.",
+        fecha: "2025-03-25T11:45:00Z",
+        clienteId: "3",
+        usuarioId: "1",
+    },
+    {
+        id: "5",
+        contenido: "Cliente menciona posibilidad de expandir implementación a otras sucursales en Q3.",
+        fecha: "2025-03-26T15:20:00Z",
+        clienteId: "4",
+        usuarioId: "2",
+    },
+    {
+        id: "6",
+        contenido: "Preparar propuesta de renovación con descuento por pronto pago.",
+        fecha: "2025-03-28T10:10:00Z",
+        clienteId: "5",
         usuarioId: "1",
     },
 ]
@@ -212,6 +274,36 @@ export const eventos: Evento[] = [
         fecha: "2025-04-02T15:00:00Z",
         descripcion: "Demostración de nuevas funcionalidades",
         tipo: "presentacion",
+    },
+    // Nuevos eventos
+    {
+        id: "4",
+        titulo: "Capacitación equipo de soporte",
+        fecha: "2025-03-25T13:00:00Z",
+        descripcion: "Entrenamiento sobre nuevas características del sistema",
+        tipo: "reunion",
+    },
+    {
+        id: "5",
+        titulo: "Webinar: Tendencias CRM 2025",
+        fecha: "2025-03-27T16:00:00Z",
+        descripcion: "Presentación de tendencias y mejores prácticas",
+        tipo: "presentacion",
+    },
+    {
+        id: "6",
+        titulo: "Llamada seguimiento Empresa ABC",
+        fecha: "2025-03-29T10:30:00Z",
+        descripcion: "Revisión de avances en implementación",
+        tipo: "llamada",
+        clienteId: "1",
+    },
+    {
+        id: "7",
+        titulo: "Reunión mensual de equipo",
+        fecha: "2025-03-30T09:00:00Z",
+        descripcion: "Revisión de KPIs y planificación mensual",
+        tipo: "reunion",
     },
 ]
 

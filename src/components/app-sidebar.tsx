@@ -1,18 +1,11 @@
 import * as React from "react"
-import {
-  GalleryVerticalEnd,
-  LayoutDashboard,
-  Users,
-  ClipboardList,
-  Calendar,
-  Settings,
-  Contact2,
-} from "lucide-react"
+import { GalleryVerticalEnd, LayoutDashboard, Users, ClipboardList, Calendar, Settings, Contact2, CalendarClock, LogOut } from 'lucide-react'
 import { Link, useLocation } from "react-router-dom"
 
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarHeader,
   SidebarMenu,
@@ -20,6 +13,8 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar"
+import { Button } from "@/components/ui/button"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 
 const data = {
   navMain: [
@@ -39,16 +34,52 @@ const data = {
       icon: Contact2,
     },
     {
+      title: "Eventos",
+      url: "/eventos",
+      icon: CalendarClock,
+    },    
+    {
       title: "Tareas",
       url: "/tareas",
       icon: ClipboardList,
     },
+    {
+      title: "Calendario",
+      url: "/calendario",
+      icon: Calendar,
+    },
+    {
+      title: "Configuración",
+      url: "/configuracion",
+      icon: Settings,
+    },
   ],
 }
 
+// Datos de usuario simulados - reemplaza esto con tu lógica de autenticación
+const currentUser = {
+  nombre: "Admin Usuario",
+  email: "admin@ejemplo.com",
+}
 
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
-  const location = useLocation() // 🧠 Saber dónde estamos
+  const location = useLocation()
+
+  const handleLogout = () => {
+    // Implementa aquí tu lógica de cierre de sesión
+    console.log("Cerrando sesión...")
+    // Por ejemplo: auth.signOut() o similar
+  }
+
+  // Función para obtener las iniciales del nombre
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .substring(0, 2)
+  }
 
   return (
     <Sidebar {...props}>
@@ -78,9 +109,9 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
                   asChild
                   isActive={location.pathname === item.url}
                 >
-                  <Link to={item.url} className="flex items-center gap-2 font-medium">
+                  <Link to={item.url} className="flex items-center gap-3 font-medium my-0.5">
                     <item.icon className="h-4 w-4" />
-                    <span>{item.title}</span>
+                    <span className="text-base">{item.title}</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -88,6 +119,30 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
+      
+      {/* Añadir el SidebarFooter con la información del usuario */}
+      <SidebarFooter className="border-t p-4">
+        <div className="flex items-center gap-3 mb-3">
+          <Avatar className="h-9 w-9">
+            <AvatarFallback className="bg-primary text-primary-foreground">
+              {getInitials(currentUser.nombre)}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col">
+            <span className="text-sm font-medium">{currentUser.nombre}</span>
+            <span className="text-xs text-muted-foreground">{currentUser.email}</span>
+          </div>
+        </div>
+        <Button 
+          variant="outline" 
+          className="w-full flex items-center justify-center gap-2"
+          onClick={handleLogout}
+        >
+          <LogOut className="h-4 w-4" />
+          Cerrar sesión
+        </Button>
+      </SidebarFooter>
+      
       <SidebarRail />
     </Sidebar>
   )
