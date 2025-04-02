@@ -1,28 +1,26 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/components/ui/use-toast"
-import type { Seguimiento } from "@/types"
-import { useCurrentUser } from "@/lib/hooks"
-import { Input } from "@/components/ui/input"
+import type { SeguimientoDTO } from "@/types/SeguimientoDTO"
+import { getClientes } from "@/services/clienteService"
+import { getUsuarios } from "@/services/usuarioService"
+import { createSeguimiento, updateSeguimiento } from "@/services/seguimientoService"
 
-// Añadir imports necesarios
-import { clientes, usuarios } from "@/lib/data"
-
-// Modificar el esquema de validación para incluir hora y campos faltantes
+// Esquema de validación
 const seguimientoSchema = z.object({
     tipo: z.enum(["llamada", "correo", "reunión"], {
         required_error: "El tipo de seguimiento es requerido",
     }),
     fecha: z.string().min(1, { message: "La fecha es requerida" }),
-    hora: z.string().min(1, { message: "La hora es requerida" }),
     comentarios: z.string().min(5, { message: "Los comentarios deben tener al menos 5 caracteres" }),
     clienteId: z.string().min(1, { message: "Debe seleccionar un cliente" }),
     usuarioId: z.string().min(1, { message: "Debe seleccionar un usuario" }),
@@ -30,47 +28,37 @@ const seguimientoSchema = z.object({
 
 type SeguimientoFormValues = z.infer<typeof seguimientoSchema>
 
-// Modificar la interfaz para hacer clienteId opcional
 interface SeguimientoFormProps {
+    seguimiento?: SeguimientoDTO
     clienteId?: string
-    seguimiento?: Seguimiento
     isEditing?: boolean
     onSuccess?: () => void
     onCancel?: () => void
 }
 
-export function SeguimientoForm({
-    clienteId,
-    seguimiento,
-    isEditing = false,
-    onSuccess,
-    onCancel,
-}: SeguimientoFormProps) {
+export function SeguimientoForm({ seguimiento, clienteId, isEditing = false, onSuccess, onCancel }: SeguimientoFormProps) {
     const { toast } = useToast()
-    const { user } = useCurrentUser()
     const [isSubmitting, setIsSubmitting] = useState(false)
+    const [clientes, setClientes] = useState<{ id: string; nombre: string }[]>([])
+    const [usuarios, setUsuarios] = useState<{ id: string; nombre: string }[]>([])
 
-    // Funciones para formatear fecha y hora
-    const formatDateForInput = (dateString?: string) => {
-        if (!dateString) return new Date().toISOString().split("T")[0]
-        const date = new Date(dateString)
-        return date.toISOString().split("T")[0]
-    }
+    // Cargar clientes y usuarios
+    useEffect(() => {
+        async function fetchData() {
+            const clientesData = await getClientes()
+            const usuariosData = await getUsuarios()
+            setClientes(clientesData.map((c) => ({ id: String(c.id), nombre: c.nombre })))
+            setUsuarios(usuariosData.map((u) => ({ id: String(u.id), nombre: u.nombre })))
+        }
+        fetchData()
+    }, [])
 
-    const formatTimeForInput = (dateString?: string) => {
-        if (!dateString) return "12:00"
-        const date = new Date(dateString)
-        return `${date.getHours().toString().padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}`
-    }
-
-    // Actualizar los valores por defecto
     const defaultValues: Partial<SeguimientoFormValues> = {
-        tipo: seguimiento?.tipo || "llamada",
-        fecha: seguimiento?.fecha ? formatDateForInput(seguimiento.fecha) : formatDateForInput(),
-        hora: seguimiento?.fecha ? formatTimeForInput(seguimiento.fecha) : formatTimeForInput(),
+        tipo: (seguimiento?.tipo as "llamada" | "correo" | "reunión") || "llamada",
+        fecha: seguimiento?.fecha?.split("T")[0] || "", // ❗️ Aquí está el error
         comentarios: seguimiento?.comentarios || "",
-        clienteId: seguimiento?.clienteId || clienteId || "",
-        usuarioId: seguimiento?.usuarioId || user?.id || "",
+        clienteId: String(seguimiento?.clienteId ?? clienteId ?? ""),
+        usuarioId: String(seguimiento?.usuarioId ?? ""),
     }
 
     const form = useForm<SeguimientoFormValues>({
@@ -78,36 +66,64 @@ export function SeguimientoForm({
         defaultValues,
     })
 
-    // Modificar la función onSubmit para combinar fecha y hora
     async function onSubmit(data: SeguimientoFormValues) {
         setIsSubmitting(true)
+
+        // ✅ Mapear los tipos de seguimiento al formato del enum de Java (sin tildes y en mayúsculas)
+        const tipoMap: Record<string, string> = {
+            llamada: "LLAMADA",
+            correo: "CORREO",
+            reunión: "REUNION",
+        }
+
+        // ✅ Formatear fecha agregando hora si no tiene
+        const formattedFecha = data.fecha.includes("T")
+            ? data.fecha
+            : `${data.fecha}T12:00:00`
+
         try {
-            // Combinar fecha y hora
-            const fechaHora = new Date(`${data.fecha}T${data.hora}:00`)
+            if (isEditing && seguimiento) {
+                if (!seguimiento.id) {
+                    throw new Error("No se puede actualizar sin un ID válido.")
+                }
 
-            // Crear objeto de seguimiento con la fecha combinada
-            const seguimientoData = {
-                ...data,
-                fecha: fechaHora.toISOString(),
+                await updateSeguimiento(seguimiento.id, {
+                    ...data,
+                    tipo: tipoMap[data.tipo], // ✅ Mapear tipo
+                    fecha: formattedFecha,    // ✅ Fecha con hora
+                    clienteId: Number(data.clienteId),
+                    usuarioId: Number(data.usuarioId),
+                })
+
+                toast({
+                    title: "Seguimiento actualizado",
+                    description: "El seguimiento ha sido actualizado correctamente.",
+                })
+            } else {
+                if (!clienteId) {
+                    throw new Error("El clienteId es necesario para crear un seguimiento.")
+                }
+
+                await createSeguimiento(Number(clienteId), {
+                    ...data,
+                    tipo: tipoMap[data.tipo], // ✅ Mapear tipo
+                    fecha: formattedFecha,    // ✅ Fecha con hora
+                    clienteId: Number(data.clienteId),
+                    usuarioId: Number(data.usuarioId),
+                })
+
+                toast({
+                    title: "Seguimiento creado",
+                    description: "El seguimiento ha sido creado correctamente.",
+                })
             }
 
-            // Simulación de envío de datos
-            await new Promise((resolve) => setTimeout(resolve, 1000))
-
-            toast({
-                title: isEditing ? "Seguimiento actualizado" : "Seguimiento creado",
-                description: isEditing
-                    ? "Los datos del seguimiento han sido actualizados correctamente."
-                    : "El seguimiento ha sido creado correctamente.",
-            })
-
-            if (onSuccess) {
-                onSuccess()
-            }
+            if (onSuccess) onSuccess()
         } catch (error) {
+            console.error(error)
             toast({
                 title: "Error",
-                description: "Ha ocurrido un error. Inténtalo de nuevo.",
+                description: "Error al guardar el seguimiento.",
                 variant: "destructive",
             })
         } finally {
@@ -115,46 +131,17 @@ export function SeguimientoForm({
         }
     }
 
+
+
     return (
         <Form {...form}>
-            {/* Actualizar el formulario para incluir todos los campos necesarios */}
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <FormField
-                        control={form.control}
-                        name="fecha"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Fecha</FormLabel>
-                                <FormControl>
-                                    <Input type="date" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-
-                    <FormField
-                        control={form.control}
-                        name="hora"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Hora</FormLabel>
-                                <FormControl>
-                                    <Input type="time" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                </div>
-
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <FormField
                     control={form.control}
                     name="tipo"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Tipo de seguimiento</FormLabel>
+                            <FormLabel>Tipo de Seguimiento</FormLabel>
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                                 <FormControl>
                                     <SelectTrigger>
@@ -167,6 +154,34 @@ export function SeguimientoForm({
                                     <SelectItem value="reunión">Reunión</SelectItem>
                                 </SelectContent>
                             </Select>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+
+                <FormField
+                    control={form.control}
+                    name="fecha"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Fecha</FormLabel>
+                            <FormControl>
+                                <Input type="date" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+
+                <FormField
+                    control={form.control}
+                    name="comentarios"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Comentarios</FormLabel>
+                            <FormControl>
+                                <Textarea placeholder="Añade comentarios del seguimiento" {...field} />
+                            </FormControl>
                             <FormMessage />
                         </FormItem>
                     )}
@@ -202,7 +217,7 @@ export function SeguimientoForm({
                     name="usuarioId"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Usuario</FormLabel>
+                            <FormLabel>Usuario Responsable</FormLabel>
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                                 <FormControl>
                                     <SelectTrigger>
@@ -222,39 +237,15 @@ export function SeguimientoForm({
                     )}
                 />
 
-                <FormField
-                    control={form.control}
-                    name="comentarios"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Comentarios</FormLabel>
-                            <FormControl>
-                                <Textarea placeholder="Detalles del seguimiento" className="resize-none" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-
                 <div className="flex justify-end gap-4">
                     <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
                         Cancelar
                     </Button>
                     <Button type="submit" disabled={isSubmitting}>
-                        {isSubmitting ? (
-                            <>
-                                <span className="animate-spin mr-2">⏳</span>
-                                {isEditing ? "Actualizando..." : "Guardando..."}
-                            </>
-                        ) : isEditing ? (
-                            "Actualizar Seguimiento"
-                        ) : (
-                            "Crear Seguimiento"
-                        )}
+                        {isSubmitting ? "Guardando..." : isEditing ? "Actualizar Seguimiento" : "Crear Seguimiento"}
                     </Button>
                 </div>
             </form>
         </Form>
     )
 }
-

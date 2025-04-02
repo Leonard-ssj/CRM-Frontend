@@ -63,4 +63,12 @@
 }
 
 
+/* Establecer el patrón como fondo para el login y register */
+.auth-bg {
+  background-image: url('/protruding-squares.svg');
+  background-repeat: repeat;
+  background-size: 200px 200px; /* Ajuste del tamaño del patrón */
+}
+
+
 

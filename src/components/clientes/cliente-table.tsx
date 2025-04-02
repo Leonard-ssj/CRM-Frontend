@@ -6,11 +6,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Eye, Search, Plus } from "lucide-react"
-import type { Cliente } from "@/types"
+import { ClienteDTO } from "@/types/ClienteDTO"
 import { formatDateShort } from "@/lib/utils"
 
 interface ClienteTableProps {
-    clientes: Cliente[]
+    clientes: ClienteDTO[]
     isLoading?: boolean
 }
 
@@ -80,7 +80,11 @@ export function ClienteTable({ clientes, isLoading = false }: ClienteTableProps)
                                     <TableCell>{cliente.email}</TableCell>
                                     <TableCell>{cliente.telefono}</TableCell>
                                     <TableCell>{cliente.empresa || "-"}</TableCell>
-                                    <TableCell>{formatDateShort(cliente.fechaCreacion)}</TableCell>
+                                    <TableCell>
+                                        {cliente.fechaCreacion
+                                            ? formatDateShort(cliente.fechaCreacion)
+                                            : "Sin fecha"}
+                                    </TableCell>
                                     <TableCell className="text-right">
                                         <Button variant="ghost" size="icon" onClick={() => navigate(`/clientes/${cliente.id}`)}>
                                             <Eye className="h-4 w-4" />
@@ -95,4 +99,3 @@ export function ClienteTable({ clientes, isLoading = false }: ClienteTableProps)
         </div>
     )
 }
-

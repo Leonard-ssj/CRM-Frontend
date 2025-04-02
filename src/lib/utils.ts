@@ -5,16 +5,18 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function formatDate(dateString: string): string {
-  const date = new Date(dateString)
+export function formatDate(dateString?: string): string {
+  if (!dateString) return "Fecha no disponible";
+  const date = new Date(dateString);
   return new Intl.DateTimeFormat("es-MX", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date)
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+  }).format(date);
 }
+
 
 export function formatDateShort(dateString: string): string {
   const date = new Date(dateString)
@@ -36,11 +38,11 @@ export function getInitials(name: string): string {
 
 export function getStatusColor(status: string): string {
   switch (status) {
-    case "pendiente":
+    case "PENDIENTE":
       return "bg-yellow-500"
-    case "en progreso":
+    case "EN_PROGRESO":
       return "bg-blue-500"
-    case "completada":
+    case "COMPLETADA":
       return "bg-green-500"
     default:
       return "bg-gray-500"

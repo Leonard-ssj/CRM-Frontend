@@ -1,4 +1,5 @@
 "use client"
+
 import { Link, useNavigate } from "react-router-dom"
 import { useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -9,9 +10,10 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
-import type { Cliente } from "@/types"
+import type { ClienteDTO } from "@/types/ClienteDTO"
+import { createCliente, updateCliente } from "@/services/clienteService"
 
-// Esquema de validación
+// ✅ Esquema de validación con Zod
 const clienteSchema = z.object({
     nombre: z.string().min(2, { message: "El nombre debe tener al menos 2 caracteres" }),
     email: z.string().email({ message: "Email inválido" }),
@@ -23,7 +25,7 @@ const clienteSchema = z.object({
 type ClienteFormValues = z.infer<typeof clienteSchema>
 
 interface ClienteFormProps {
-    cliente?: Cliente
+    cliente?: ClienteDTO
     isEditing?: boolean
 }
 
@@ -32,7 +34,7 @@ export function ClienteForm({ cliente, isEditing = false }: ClienteFormProps) {
     const { toast } = useToast()
     const [isSubmitting, setIsSubmitting] = useState(false)
 
-    // Valores por defecto
+    // ✅ Valores por defecto para el formulario
     const defaultValues: Partial<ClienteFormValues> = {
         nombre: cliente?.nombre || "",
         email: cliente?.email || "",
@@ -46,20 +48,27 @@ export function ClienteForm({ cliente, isEditing = false }: ClienteFormProps) {
         defaultValues,
     })
 
+    // ✅ Función para manejar el envío del formulario
     async function onSubmit(data: ClienteFormValues) {
         setIsSubmitting(true)
         try {
-            // Simulación de envío de datos
-            await new Promise((resolve) => setTimeout(resolve, 1000))
+            if (isEditing && cliente?.id) {
+                // ✅ Actualizar cliente si estamos editando
+                await updateCliente(cliente.id, data)
+                toast({
+                    title: "Cliente actualizado",
+                    description: "Los datos del cliente han sido actualizados correctamente.",
+                })
+            } else {
+                // ✅ Crear nuevo cliente
+                await createCliente(data)
+                toast({
+                    title: "Cliente creado",
+                    description: "El cliente ha sido creado correctamente.",
+                })
+            }
 
-            toast({
-                title: isEditing ? "Cliente actualizado" : "Cliente creado",
-                description: isEditing
-                    ? "Los datos del cliente han sido actualizados correctamente."
-                    : "El cliente ha sido creado correctamente.",
-            })
-
-            // Redireccionar a la lista de clientes
+            // ✅ Redireccionar a la lista de clientes
             navigate("/clientes")
         } catch (error) {
             toast({
@@ -89,7 +98,6 @@ export function ClienteForm({ cliente, isEditing = false }: ClienteFormProps) {
                             </FormItem>
                         )}
                     />
-
                     <FormField
                         control={form.control}
                         name="email"
@@ -103,7 +111,6 @@ export function ClienteForm({ cliente, isEditing = false }: ClienteFormProps) {
                             </FormItem>
                         )}
                     />
-
                     <FormField
                         control={form.control}
                         name="telefono"
@@ -117,7 +124,6 @@ export function ClienteForm({ cliente, isEditing = false }: ClienteFormProps) {
                             </FormItem>
                         )}
                     />
-
                     <FormField
                         control={form.control}
                         name="empresa"
@@ -131,7 +137,6 @@ export function ClienteForm({ cliente, isEditing = false }: ClienteFormProps) {
                             </FormItem>
                         )}
                     />
-
                     <FormField
                         control={form.control}
                         name="ubicacion"
@@ -146,7 +151,6 @@ export function ClienteForm({ cliente, isEditing = false }: ClienteFormProps) {
                         )}
                     />
                 </div>
-
                 <div className="flex justify-end gap-4">
                     <Button type="button" variant="outline" onClick={() => navigate(-1)} disabled={isSubmitting}>
                         Cancelar
@@ -168,4 +172,3 @@ export function ClienteForm({ cliente, isEditing = false }: ClienteFormProps) {
         </Form>
     )
 }
-

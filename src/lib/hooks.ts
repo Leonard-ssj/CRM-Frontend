@@ -11,6 +11,8 @@ import {
     getSeguimientosByClienteId,
     getNotasByClienteId,
 } from "./data"
+import { ClienteDTO } from "@/types/ClienteDTO"
+import { getClientes } from "@/services/clienteService"
 
 // Hook para obtener el usuario actual
 export function useCurrentUser() {
@@ -30,18 +32,24 @@ export function useCurrentUser() {
 
 // Hook para obtener todos los clientes
 export function useClientes() {
-    const [data, setData] = useState<Cliente[]>([])
-    const [loading, setLoading] = useState(true)
+    const [clientes, setClientes] = useState<ClienteDTO[]>([])
+    const [loading, setLoading] = useState<boolean>(true)
 
     useEffect(() => {
-        // Simulación de carga de clientes
-        setTimeout(() => {
-            setData(clientes)
-            setLoading(false)
-        }, 500)
+        const fetchClientes = async () => {
+            try {
+                const data = await getClientes()
+                setClientes(data)
+            } catch (error) {
+                console.error("Error al obtener clientes:", error)
+            } finally {
+                setLoading(false)
+            }
+        }
+        fetchClientes()
     }, [])
 
-    return { clientes: data, loading }
+    return { clientes, loading }
 }
 
 // Hook para obtener un cliente por ID

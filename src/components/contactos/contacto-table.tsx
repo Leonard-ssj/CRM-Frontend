@@ -1,17 +1,15 @@
 "use client"
 
 import { useState } from "react"
-import { Link } from "react-router-dom"
-import { useNavigate } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Eye, Search, Plus, Building2 } from "lucide-react"
-import type { Contacto } from "@/types"
-import { getClienteNombreById } from "@/lib/contactosData"
+import type { ContactoDTO } from "@/types/ContactoDTO"
 
 interface ContactoTableProps {
-    contactos: Contacto[]
+    contactos: ContactoDTO[]
     isLoading?: boolean
 }
 
@@ -25,7 +23,7 @@ export function ContactoTable({ contactos, isLoading = false }: ContactoTablePro
             contacto.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
             contacto.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
             contacto.puesto?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            getClienteNombreById(contacto.clienteId).toLowerCase().includes(searchTerm.toLowerCase()),
+            contacto.clienteNombre.toLowerCase().includes(searchTerm.toLowerCase()),
     )
 
     return (
@@ -93,7 +91,7 @@ export function ContactoTable({ contactos, isLoading = false }: ContactoTablePro
                                     <TableCell>
                                         <div className="flex items-center">
                                             <Building2 className="h-4 w-4 mr-2 text-muted-foreground" />
-                                            {getClienteNombreById(contacto.clienteId)}
+                                            {contacto.clienteNombre}
                                         </div>
                                     </TableCell>
                                     <TableCell className="text-right">
@@ -110,4 +108,3 @@ export function ContactoTable({ contactos, isLoading = false }: ContactoTablePro
         </div>
     )
 }
-

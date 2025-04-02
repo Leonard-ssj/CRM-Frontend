@@ -1,7 +1,6 @@
 "use client"
 
-import { useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useState, useEffect } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
@@ -11,11 +10,10 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/components/ui/use-toast"
-import type { Contacto } from "@/types"
-import { clientes } from "@/lib/data"
-import { addContacto, updateContacto } from "@/lib/contactosData"
+import type { ContactoDTO } from "@/types/ContactoDTO"
+import { getClientes } from "@/services/clienteService"
+import { createContacto, updateContacto } from "@/services/contactoService"
 
-// Esquema de validación
 const contactoSchema = z.object({
     nombre: z.string().min(2, { message: "El nombre debe tener al menos 2 caracteres" }),
     email: z.string().email({ message: "Email inválido" }),
@@ -28,27 +26,42 @@ const contactoSchema = z.object({
 type ContactoFormValues = z.infer<typeof contactoSchema>
 
 interface ContactoFormProps {
-    contacto?: Contacto
-    clienteId?: string // Añadimos esta propiedad para permitir preseleccionar un cliente
+    contacto?: ContactoDTO
+    clienteId?: string
     isEditing?: boolean
     onSuccess?: () => void
     onCancel?: () => void
 }
 
-export function ContactoForm({ contacto, clienteId, isEditing = false, onSuccess, onCancel }: ContactoFormProps) {
-    const naviagte = useNavigate()
+export function ContactoForm({
+    contacto,
+    clienteId,
+    isEditing = false,
+    onSuccess,
+    onCancel,
+}: ContactoFormProps) {
     const { toast } = useToast()
     const [isSubmitting, setIsSubmitting] = useState(false)
+    const [clientes, setClientes] = useState<{ id: string; nombre: string }[]>([])
 
-    // Valores por defecto
+    // Cargar clientes para el formulario
+    useEffect(() => {
+        async function fetchClientes() {
+            const data = await getClientes();
+            setClientes(data.map((c) => ({ id: String(c.id), nombre: c.nombre })));
+        }
+        fetchClientes();
+    }, []);
+
     const defaultValues: Partial<ContactoFormValues> = {
         nombre: contacto?.nombre || "",
         email: contacto?.email || "",
         telefono: contacto?.telefono || "",
         puesto: contacto?.puesto || "",
-        clienteId: contacto?.clienteId || clienteId || "", // Usamos clienteId si está disponible
+        clienteId: String(contacto?.clienteId ?? clienteId ?? ""),
         notas: contacto?.notas || "",
-    }
+    };
+
 
     const form = useForm<ContactoFormValues>({
         resolver: zodResolver(contactoSchema),
@@ -58,166 +71,145 @@ export function ContactoForm({ contacto, clienteId, isEditing = false, onSuccess
     async function onSubmit(data: ContactoFormValues) {
         setIsSubmitting(true)
         try {
-            // Simulación de envío de datos
-            await new Promise((resolve) => setTimeout(resolve, 1000))
-
-            // Guardar los datos (simulado)
             if (isEditing && contacto) {
-                updateContacto(contacto.id, data)
+                if (!contacto.id) {
+                    throw new Error("No se puede actualizar sin un ID válido.");
+                }
+                await updateContacto(contacto.id, {
+                    ...data,
+                    clienteId: Number(data.clienteId),
+                });
+                toast({ title: "Contacto actualizado", description: "El contacto ha sido actualizado correctamente." });
             } else {
-                addContacto(data)
+                if (!clienteId) {
+                    throw new Error("El clienteId es necesario para crear un contacto.");
+                }
+                await createContacto(Number(clienteId), {
+                    ...data,
+                    clienteId: Number(data.clienteId),
+                });
+                toast({ title: "Contacto creado", description: "El contacto ha sido creado correctamente." });
             }
 
-            // Mostrar mensaje de éxito
-            toast({
-                title: isEditing ? "Contacto actualizado" : "Contacto creado",
-                description: isEditing
-                    ? "Los datos del contacto han sido actualizados correctamente."
-                    : "El contacto ha sido creado correctamente.",
-            })
-
-            // Si hay una función de éxito personalizada, la llamamos
             if (onSuccess) {
-                onSuccess()
-            } else {
-                // Si no, redirigimos a la lista de contactos
-                naviagte("/contactos")
+                onSuccess();
             }
         } catch (error) {
-            toast({
-                title: "Error",
-                description: "Ha ocurrido un error. Inténtalo de nuevo.",
-                variant: "destructive",
-            })
+            console.error(error);
+            toast({ title: "Error", description: "Error al guardar el contacto.", variant: "destructive" });
         } finally {
-            setIsSubmitting(false)
+            setIsSubmitting(false);
         }
     }
+
 
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                    <FormField
-                        control={form.control}
-                        name="nombre"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Nombre</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="Nombre del contacto" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
+                <FormField
+                    control={form.control}
+                    name="nombre"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Nombre</FormLabel>
+                            <FormControl>
+                                <Input placeholder="Nombre del contacto" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
 
-                    <FormField
-                        control={form.control}
-                        name="email"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Email</FormLabel>
-                                <FormControl>
-                                    <Input type="email" placeholder="correo@ejemplo.com" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
+                <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Email</FormLabel>
+                            <FormControl>
+                                <Input type="email" placeholder="correo@ejemplo.com" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
 
-                    <FormField
-                        control={form.control}
-                        name="telefono"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Teléfono</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="555-1234" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
+                <FormField
+                    control={form.control}
+                    name="telefono"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Teléfono</FormLabel>
+                            <FormControl>
+                                <Input placeholder="555-1234" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
 
-                    <FormField
-                        control={form.control}
-                        name="puesto"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Puesto</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="Puesto o cargo (opcional)" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
+                <FormField
+                    control={form.control}
+                    name="puesto"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Puesto</FormLabel>
+                            <FormControl>
+                                <Input placeholder="Puesto del contacto" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
 
-                    <FormField
-                        control={form.control}
-                        name="clienteId"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Cliente</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Selecciona un cliente" />
-                                        </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        {clientes.map((cliente) => (
-                                            <SelectItem key={cliente.id} value={cliente.id}>
-                                                {cliente.nombre}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-
-                    <FormField
-                        control={form.control}
-                        name="notas"
-                        render={({ field }) => (
-                            <FormItem className="md:col-span-2">
-                                <FormLabel>Notas</FormLabel>
+                <FormField
+                    control={form.control}
+                    name="clienteId"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Cliente</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
                                 <FormControl>
-                                    <Textarea placeholder="Notas adicionales (opcional)" className="resize-none" {...field} />
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Selecciona un cliente" />
+                                    </SelectTrigger>
                                 </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                </div>
+                                <SelectContent>
+                                    {clientes.map((cliente) => (
+                                        <SelectItem key={cliente.id} value={cliente.id}>
+                                            {cliente.nombre}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+
+                <FormField
+                    control={form.control}
+                    name="notas"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Notas</FormLabel>
+                            <FormControl>
+                                <Textarea placeholder="Notas adicionales" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
 
                 <div className="flex justify-end gap-4">
-                    <Button
-                        type="button"
-                        variant="outline"
-                        onClick={onCancel ? onCancel : () => naviagte(-1)}
-                        disabled={isSubmitting}
-                    >
+                    <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
                         Cancelar
                     </Button>
                     <Button type="submit" disabled={isSubmitting}>
-                        {isSubmitting ? (
-                            <>
-                                <span className="animate-spin mr-2">⏳</span>
-                                {isEditing ? "Actualizando..." : "Guardando..."}
-                            </>
-                        ) : isEditing ? (
-                            "Actualizar Contacto"
-                        ) : (
-                            "Crear Contacto"
-                        )}
+                        {isSubmitting ? "Guardando..." : isEditing ? "Actualizar Contacto" : "Crear Contacto"}
                     </Button>
                 </div>
             </form>
         </Form>
     )
 }
-

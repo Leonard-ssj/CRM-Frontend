@@ -19,6 +19,7 @@ export default function NuevoCliente() {
                 </div>
             </div>
             <div className="border rounded-lg p-6 bg-card">
+                {/* ✅ Enviar un cliente vacío para creación */}
                 <ClienteForm />
             </div>
         </div>

@@ -1,7 +1,6 @@
 "use client"
 
-import { useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useState, useEffect } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
@@ -11,27 +10,29 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/components/ui/use-toast"
-import type { Tarea } from "@/types"
-import { usuarios, clientes } from "@/lib/data"
-import { addTarea, updateTarea } from "@/lib/tareasData"
+import type { TareaDTO } from "@/types/TareaDTO"
+import { getClientes } from "@/services/clienteService"
+import { getUsuarios } from "@/services/usuarioService"
+import { createTarea, updateTarea } from "@/services/tareaService"
 
-// Modificar el esquema de validación para incluir hora
+// Esquema de validación
 const tareaSchema = z.object({
     titulo: z.string().min(2, { message: "El título debe tener al menos 2 caracteres" }),
     descripcion: z.string().min(5, { message: "La descripción debe tener al menos 5 caracteres" }),
     fechaLimite: z.string().min(1, { message: "La fecha límite es requerida" }),
-    horaLimite: z.string().min(1, { message: "La hora límite es requerida" }),
-    estado: z.enum(["pendiente", "en progreso", "completada"], {
+    horaLimite: z.string().min(1, { message: "La hora límite es requerida" }), // ✅ Añadir horaLimite
+    estado: z.enum(["pendiente", "en_progreso", "completada"], {
         required_error: "El estado es requerido",
     }),
     clienteId: z.string().min(1, { message: "Debe seleccionar un cliente" }),
-    asignadoA: z.string().min(1, { message: "Debe asignar la tarea a un usuario" }),
-})
+    asignadoA: z.string().min(1, { message: "Debe seleccionar un usuario asignado" }),
+});
+
 
 type TareaFormValues = z.infer<typeof tareaSchema>
 
 interface TareaFormProps {
-    tarea?: Tarea
+    tarea?: TareaDTO
     clienteId?: string
     isEditing?: boolean
     onSuccess?: () => void
@@ -39,86 +40,135 @@ interface TareaFormProps {
 }
 
 export function TareaForm({ tarea, clienteId, isEditing = false, onSuccess, onCancel }: TareaFormProps) {
-    const navigate = useNavigate()
     const { toast } = useToast()
     const [isSubmitting, setIsSubmitting] = useState(false)
+    const [clientes, setClientes] = useState<{ id: string; nombre: string }[]>([])
+    const [usuarios, setUsuarios] = useState<{ id: string; nombre: string }[]>([])
 
-    // Modificar la función formatDateForInput para separar fecha y hora
-    const formatDateForInput = (dateString: string) => {
-        const date = new Date(dateString)
-        return date.toISOString().split("T")[0]
-    }
+    // Cargar clientes y usuarios
+    useEffect(() => {
+        async function fetchData() {
+            const clientesData = await getClientes()
+            const usuariosData = await getUsuarios()
+            setClientes(clientesData.map((c) => ({ id: String(c.id), nombre: c.nombre })))
+            setUsuarios(usuariosData.map((u) => ({ id: String(u.id), nombre: u.nombre })))
+        }
+        fetchData()
+    }, [])
 
-    const formatTimeForInput = (dateString: string) => {
-        const date = new Date(dateString)
-        return `${date.getHours().toString().padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}`
-    }
+    // Función para normalizar el estado desde el backend a frontend
+    // ✅ Mapear el estado para mostrar correctamente en el formulario
+    const mapEstadoToForm = (estado?: string): "pendiente" | "en_progreso" | "completada" => {
+        if (!estado) return "pendiente";
+        switch (estado.toLowerCase()) {
+            case "en progreso":
+            case "en_progreso":
+                return "en_progreso";
+            case "pendiente":
+                return "pendiente";
+            case "completada":
+                return "completada";
+            default:
+                return "pendiente";
+        }
+    };
 
-    // Actualizar los valores por defecto para incluir horaLimite
+
     const defaultValues: Partial<TareaFormValues> = {
         titulo: tarea?.titulo || "",
         descripcion: tarea?.descripcion || "",
-        fechaLimite: tarea?.fechaLimite ? formatDateForInput(tarea.fechaLimite) : new Date().toISOString().split("T")[0],
-        horaLimite: tarea?.fechaLimite ? formatTimeForInput(tarea.fechaLimite) : "12:00",
-        estado: tarea?.estado || "pendiente",
-        clienteId: tarea?.clienteId || clienteId || "",
-        asignadoA: tarea?.asignadoA || usuarios[0]?.id || "",
-    }
+        fechaLimite: tarea?.fechaLimite?.split("T")[0] || "", // Mantener formato de fecha
+        horaLimite: tarea?.horaLimite || "09:00:00", // ✅ Añadir hora por defecto si no existe
+        estado: mapEstadoToForm(tarea?.estado),
+        clienteId: String(tarea?.clienteId ?? clienteId ?? ""),
+        asignadoA: String(tarea?.asignadoA ?? ""),
+    };
+
+
+
+
+
 
     const form = useForm<TareaFormValues>({
         resolver: zodResolver(tareaSchema),
         defaultValues,
     })
 
-    // Modificar la función onSubmit para combinar fecha y hora
+    // Función para normalizar el estado del formulario al formato del backend
+    // ✅ Corregido: Devuelve solo valores válidos para TareaDTO.estado
+    const mapEstadoToBackend = (estado: "pendiente" | "en_progreso" | "completada"): "pendiente" | "en_progreso" | "completada" => {
+        switch (estado) {
+            case "en_progreso":
+                return "en_progreso";
+            case "pendiente":
+                return "pendiente";
+            case "completada":
+                return "completada";
+            default:
+                return "pendiente"; // Valor por defecto para evitar errores
+        }
+    };
+
+
     async function onSubmit(data: TareaFormValues) {
-        setIsSubmitting(true)
+        setIsSubmitting(true);
+
+        // ✅ Normalizar estado para el backend
+        const normalizedEstado = mapEstadoToBackend(data.estado);
+
+        // CORRECTO: Añadir ":00" si la hora no tiene segundos
+        const formattedFechaLimite = `${data.fechaLimite}T${data.horaLimite.length === 5 ? data.horaLimite + ":00" : data.horaLimite}`;
+
+
+
+
         try {
-            // Combinar fecha y hora
-            const fechaHora = new Date(`${data.fechaLimite}T${data.horaLimite}:00`)
-
-            // Crear objeto de tarea con la fecha combinada
-            const tareaData = {
-                ...data,
-                fechaLimite: fechaHora.toISOString(),
-            }
-
-            // Simulación de envío de datos
-            await new Promise((resolve) => setTimeout(resolve, 1000))
-
-            // Guardar los datos (simulado)
             if (isEditing && tarea) {
-                updateTarea(tarea.id, tareaData)
+                if (!tarea.id) {
+                    throw new Error("No se puede actualizar sin un ID válido.");
+                }
+                await updateTarea(tarea.id, {
+                    ...data,
+                    fechaLimite: formattedFechaLimite, // ✅ Combinar fecha y hora
+                    estado: normalizedEstado,
+                    clienteId: Number(data.clienteId),
+                    asignadoA: Number(data.asignadoA),
+                });
+                toast({
+                    title: "Tarea actualizada",
+                    description: "La tarea ha sido actualizada correctamente.",
+                });
             } else {
-                addTarea(tareaData)
+                if (!clienteId) {
+                    throw new Error("El clienteId es necesario para crear una tarea.");
+                }
+                await createTarea(Number(clienteId), {
+                    ...data,
+                    fechaLimite: formattedFechaLimite, // ✅ Combinar fecha y hora
+                    estado: normalizedEstado,
+                    clienteId: Number(data.clienteId),
+                    asignadoA: Number(data.asignadoA),
+                });
+                toast({
+                    title: "Tarea creada",
+                    description: "La tarea ha sido creada correctamente.",
+                });
             }
 
-            // Mostrar mensaje de éxito
-            toast({
-                title: isEditing ? "Tarea actualizada" : "Tarea creada",
-                description: isEditing
-                    ? "Los datos de la tarea han sido actualizados correctamente."
-                    : "La tarea ha sido creada correctamente.",
-            })
-
-            // Si hay una función de éxito personalizada, la llamamos
-            if (onSuccess) {
-                onSuccess()
-            } else {
-                // Si no, redirigimos a la lista de tareas
-                navigate("/tareas")
-            }
+            if (onSuccess) onSuccess();
         } catch (error) {
-            console.error("Error al guardar la tarea:", error)
+            console.error(error);
             toast({
                 title: "Error",
-                description: "Ha ocurrido un error. Inténtalo de nuevo.",
+                description: "Error al guardar la tarea.",
                 variant: "destructive",
-            })
+            });
         } finally {
-            setIsSubmitting(false)
+            setIsSubmitting(false);
         }
     }
+
+
 
     return (
         <Form {...form}>
@@ -144,144 +194,125 @@ export function TareaForm({ tarea, clienteId, isEditing = false, onSuccess, onCa
                         <FormItem>
                             <FormLabel>Descripción</FormLabel>
                             <FormControl>
-                                <Textarea placeholder="Descripción detallada de la tarea" className="resize-none" {...field} />
+                                <Textarea placeholder="Descripción de la tarea" {...field} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
                     )}
                 />
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <FormField
-                        control={form.control}
-                        name="fechaLimite"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Fecha límite</FormLabel>
+                <FormField
+                    control={form.control}
+                    name="fechaLimite"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Fecha Límite</FormLabel>
+                            <FormControl>
+                                <Input type="date" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+
+                <FormField
+                    control={form.control}
+                    name="horaLimite"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Hora Límite</FormLabel>
+                            <FormControl>
+                                {/* ❗️ SOLO UN HIJO AQUÍ */}
+                                <Input type="time" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+
+
+                <FormField
+                    control={form.control}
+                    name="estado"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Estado</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
                                 <FormControl>
-                                    <Input type="date" {...field} />
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Selecciona un estado" />
+                                    </SelectTrigger>
                                 </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
+                                <SelectContent>
+                                    <SelectItem value="pendiente">Pendiente</SelectItem>
+                                    <SelectItem value="en_progreso">En Progreso</SelectItem>
+                                    <SelectItem value="completada">Completada</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
 
-                    <FormField
-                        control={form.control}
-                        name="horaLimite"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Hora límite</FormLabel>
+                <FormField
+                    control={form.control}
+                    name="clienteId"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Cliente</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
                                 <FormControl>
-                                    <Input type="time" {...field} />
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Selecciona un cliente" />
+                                    </SelectTrigger>
                                 </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                </div>
+                                <SelectContent>
+                                    {clientes.map((cliente) => (
+                                        <SelectItem key={cliente.id} value={cliente.id}>
+                                            {cliente.nombre}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <FormField
-                        control={form.control}
-                        name="estado"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Estado</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Selecciona un estado" />
-                                        </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        <SelectItem value="pendiente">Pendiente</SelectItem>
-                                        <SelectItem value="en progreso">En progreso</SelectItem>
-                                        <SelectItem value="completada">Completada</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                </div>
-
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <FormField
-                        control={form.control}
-                        name="clienteId"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Cliente</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Selecciona un cliente" />
-                                        </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        {clientes.map((cliente) => (
-                                            <SelectItem key={cliente.id} value={cliente.id}>
-                                                {cliente.nombre}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-
-                    <FormField
-                        control={form.control}
-                        name="asignadoA"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Asignado a</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Selecciona un usuario" />
-                                        </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        {usuarios.map((usuario) => (
-                                            <SelectItem key={usuario.id} value={usuario.id}>
-                                                {usuario.nombre}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                </div>
+                <FormField
+                    control={form.control}
+                    name="asignadoA"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Asignado a</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Selecciona un usuario" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    {usuarios.map((usuario) => (
+                                        <SelectItem key={usuario.id} value={usuario.id}>
+                                            {usuario.nombre}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
 
                 <div className="flex justify-end gap-4">
-                    <Button
-                        type="button"
-                        variant="outline"
-                        onClick={onCancel ? onCancel : () => navigate(-1)}
-                        disabled={isSubmitting}
-                    >
+                    <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
                         Cancelar
                     </Button>
                     <Button type="submit" disabled={isSubmitting}>
-                        {isSubmitting ? (
-                            <>
-                                <span className="animate-spin mr-2">⏳</span>
-                                {isEditing ? "Actualizando..." : "Guardando..."}
-                            </>
-                        ) : isEditing ? (
-                            "Actualizar Tarea"
-                        ) : (
-                            "Crear Tarea"
-                        )}
+                        {isSubmitting ? "Guardando..." : isEditing ? "Actualizar Tarea" : "Crear Tarea"}
                     </Button>
                 </div>
             </form>
         </Form>
     )
 }
-

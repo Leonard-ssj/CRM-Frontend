@@ -2,13 +2,13 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import type { Contacto } from "@/types"
+import type { ContactoDTO } from "@/types/ContactoDTO"
 import { Mail, Phone, Briefcase, Edit, Trash } from "lucide-react"
 
 interface ContactoCardProps {
-    contacto: Contacto
-    onEdit?: (contacto: Contacto) => void
-    onDelete?: (id: string) => void
+    contacto: ContactoDTO
+    onEdit?: (contacto: ContactoDTO) => void
+    onDelete?: (id: number) => void
 }
 
 export function ContactoCard({ contacto, onEdit, onDelete }: ContactoCardProps) {
@@ -23,11 +23,11 @@ export function ContactoCard({ contacto, onEdit, onDelete }: ContactoCardProps) 
                                 <Edit className="h-4 w-4" />
                             </Button>
                         )}
-                        {onDelete && (
+                        {onDelete && contacto.id !== undefined && (
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => onDelete(contacto.id)}
+                                onClick={() => onDelete(contacto.id!)} // Aseguramos que no sea undefined
                                 className="h-8 w-8 text-destructive"
                             >
                                 <Trash className="h-4 w-4" />
@@ -60,4 +60,3 @@ export function ContactoCard({ contacto, onEdit, onDelete }: ContactoCardProps) 
         </Card>
     )
 }
-
