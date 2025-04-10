@@ -30,5 +30,11 @@ const getAllContactos = async () => {
     return response.data
 }
 
-export { getContactosByCliente, createContacto, updateContacto, deleteContacto, getAllContactos }
+// Obtener contacto por ID
+const getContactoById = async (id: number) => {
+    const response = await api.get<ContactoDTO>(`/api/contactos/${id}`);
+    return response.data;
+};
+
+export { getContactosByCliente, createContacto, updateContacto, deleteContacto, getAllContactos, getContactoById }
 

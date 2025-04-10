@@ -6,50 +6,57 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { EventoCard } from "@/components/eventos/evento-card"
 import { EventoForm } from "@/components/calendario/evento-form"
-import { getEventoById, deleteEvento } from "@/lib/eventosData"
+import { getEventoById } from "@/services/eventosService"
+import { EventoDTO } from "@/types/EventoDTO"
 import { ArrowLeft, Edit } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
-
-const formatDate = (date: Date) => {
-    return new Date(date).toLocaleDateString() + " " + new Date(date).toLocaleTimeString()
-}
-
-const getClienteNombreById = (id: string) => {
-    return "Cliente " + id // Aquí puedes conectar con `getClienteById(id)?.nombre`
-}
 
 export default function EventoDetail() {
     const { id } = useParams<{ id: string }>()
     const navigate = useNavigate()
     const { toast } = useToast()
 
-    const [evento, setEvento] = useState(getEventoById(id || ""))
+    const [evento, setEvento] = useState<EventoDTO | null>(null)
+    const [isLoading, setIsLoading] = useState(true)
     const [isEditing, setIsEditing] = useState(false)
 
     useEffect(() => {
-        if (!evento) {
-            navigate("/eventos")
+        const fetchEvento = async () => {
+            try {
+                if (id) {
+                    const data = await getEventoById(Number(id))
+                    setEvento(data)
+                }
+            } catch (error) {
+                console.error("Error al obtener evento", error)
+                navigate("/eventos")
+            } finally {
+                setIsLoading(false)
+            }
         }
-    }, [evento, navigate])
 
-    const handleDelete = (id: string) => {
-        try {
-            deleteEvento(id)
-            toast({
-                title: "Evento eliminado",
-                description: "El evento ha sido eliminado correctamente.",
-            })
-            navigate("/eventos")
-        } catch (error) {
-            toast({
-                title: "Error",
-                description: "Ha ocurrido un error al eliminar el evento.",
-                variant: "destructive",
-            })
+        fetchEvento()
+    }, [id, navigate])
+
+    const formatTipo = (tipo: string) => {
+        switch (tipo) {
+            case "REUNION":
+                return "Reunión"
+            case "PRESENTACION":
+                return "Presentación"
+            case "PRESENCIAL":
+                return "Presencial"
+            default:
+                return tipo
         }
     }
 
-    if (!evento) {
+    const formatDate = (iso: string) => {
+        const date = new Date(iso)
+        return date.toLocaleDateString() + " " + date.toLocaleTimeString()
+    }
+
+    if (isLoading || !evento) {
         return (
             <div className="w-full h-96 flex items-center justify-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -80,10 +87,18 @@ export default function EventoDetail() {
                 <Card>
                     <CardContent className="pt-6">
                         <EventoForm
-                            evento={evento}
+                            evento={{
+                                id: String(evento.id),
+                                titulo: evento.titulo,
+                                fecha: evento.fecha,
+                                tipo: evento.tipo,
+                                descripcion: evento.descripcion,
+                                clienteId: evento.clienteId ? String(evento.clienteId) : undefined,
+                            }}
                             isEditing={true}
                             onSuccess={() => {
-                                setEvento(getEventoById(id || ""))
+                                // Volver a cargar evento después de edición
+                                getEventoById(Number(id)).then(setEvento)
                                 setIsEditing(false)
                             }}
                             onCancel={() => setIsEditing(false)}
@@ -93,7 +108,7 @@ export default function EventoDetail() {
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="md:col-span-1">
-                        <EventoCard evento={evento} onEdit={() => setIsEditing(true)} onDelete={handleDelete} />
+                        <EventoCard evento={evento} onEdit={() => setIsEditing(true)} />
                     </div>
                     <div className="md:col-span-1">
                         <Card>
@@ -102,24 +117,16 @@ export default function EventoDetail() {
                                 <div className="space-y-4">
                                     <div>
                                         <h3 className="text-sm font-medium text-muted-foreground">Tipo</h3>
-                                        <p>
-                                            {evento.tipo === "reunion"
-                                                ? "Reunión"
-                                                : evento.tipo === "llamada"
-                                                    ? "Llamada"
-                                                    : evento.tipo === "presentacion"
-                                                        ? "Presentación"
-                                                        : "Otro"}
-                                        </p>
+                                        <p>{formatTipo(evento.tipo)}</p>
                                     </div>
                                     <div>
                                         <h3 className="text-sm font-medium text-muted-foreground">Fecha y hora</h3>
-                                        <p>{formatDate(new Date(evento.fecha))}</p>
+                                        <p>{formatDate(evento.fecha)}</p>
                                     </div>
-                                    {evento.clienteId && (
+                                    {evento.clienteNombre && (
                                         <div>
                                             <h3 className="text-sm font-medium text-muted-foreground">Cliente</h3>
-                                            <p>{getClienteNombreById(evento.clienteId)}</p>
+                                            <p>{evento.clienteNombre}</p>
                                         </div>
                                     )}
                                     {evento.descripcion && (

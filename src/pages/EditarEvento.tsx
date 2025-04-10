@@ -1,12 +1,40 @@
-import { EventoForm } from "@/components/calendario/evento-form"
-import { Button } from "@/components/ui/button"
-import { Link, useParams } from "react-router-dom"
+import { useEffect, useState } from "react"
+import { useParams, Link } from "react-router-dom"
 import { ArrowLeft } from "lucide-react"
-import { getEventoById } from "@/lib/eventosData"
+import { Button } from "@/components/ui/button"
+import { EventoForm } from "@/components/calendario/evento-form"
+import { getEventoById } from "@/services/eventosService"
+import { EventoDTO } from "@/types/EventoDTO"
 
 export default function EditarEvento() {
     const { id } = useParams<{ id: string }>()
-    const evento = getEventoById(id || "")
+    const [evento, setEvento] = useState<EventoDTO | null>(null)
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        if (!id) return
+
+        const fetchEvento = async () => {
+            try {
+                const data = await getEventoById(Number(id))
+                setEvento(data)
+            } catch (error) {
+                console.error("Error al obtener el evento:", error)
+            } finally {
+                setLoading(false)
+            }
+        }
+
+        fetchEvento()
+    }, [id])
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-96">
+                <p>Cargando evento...</p>
+            </div>
+        )
+    }
 
     if (!evento) {
         return (
@@ -29,7 +57,17 @@ export default function EditarEvento() {
                 </div>
             </div>
             <div className="border rounded-lg p-6 bg-card">
-                <EventoForm evento={evento} isEditing={true} />
+                <EventoForm
+                    evento={{
+                        id: String(evento.id),
+                        titulo: evento.titulo,
+                        fecha: evento.fecha,
+                        tipo: evento.tipo as "REUNION" | "PRESENTACION" | "PRESENCIAL",
+                        descripcion: evento.descripcion,
+                        clienteId: evento.clienteId ? String(evento.clienteId) : undefined,
+                    }}
+                    isEditing={true}
+                />
             </div>
         </div>
     )

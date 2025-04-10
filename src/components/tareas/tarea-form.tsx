@@ -139,16 +139,20 @@ export function TareaForm({ tarea, clienteId, isEditing = false, onSuccess, onCa
                     description: "La tarea ha sido actualizada correctamente.",
                 });
             } else {
-                if (!clienteId) {
+                // ✅ Obtener el clienteId ya sea desde prop o desde el campo del formulario
+                const clienteIdFinal = tarea?.clienteId ?? Number(data.clienteId);
+                if (!clienteIdFinal || isNaN(clienteIdFinal)) {
                     throw new Error("El clienteId es necesario para crear una tarea.");
                 }
-                await createTarea(Number(clienteId), {
+
+                await createTarea(clienteIdFinal, {
                     ...data,
-                    fechaLimite: formattedFechaLimite, // ✅ Combinar fecha y hora
+                    clienteId: clienteIdFinal,
+                    fechaLimite: formattedFechaLimite,
                     estado: normalizedEstado,
-                    clienteId: Number(data.clienteId),
                     asignadoA: Number(data.asignadoA),
                 });
+                
                 toast({
                     title: "Tarea creada",
                     description: "La tarea ha sido creada correctamente.",

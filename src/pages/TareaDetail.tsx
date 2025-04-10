@@ -5,26 +5,37 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { TareaCard } from "@/components/tareas/tarea-card"
 import { TareaForm } from "@/components/tareas/tarea-form"
-import { getTareaById, getClienteNombreById, getUsuarioNombreById } from "@/lib/tareasData"
+import { getTareaById } from "@/services/tareaService"
 import { ArrowLeft, Edit } from "lucide-react"
 import { useParams, useNavigate, Link } from "react-router-dom"
+import type { TareaDTO } from "@/types/TareaDTO"
 
 export default function TareaDetail() {
     const params = useParams()
     const navigate = useNavigate()
     const tareaId = params.id as string
 
-    const [tarea, setTarea] = useState(getTareaById(tareaId))
+    const [tarea, setTarea] = useState<TareaDTO | null>(null)
     const [isEditing, setIsEditing] = useState(false)
+    const [isLoading, setIsLoading] = useState(true)
 
-    // Si no existe la tarea, redirigir a la lista
     useEffect(() => {
-        if (!tarea) {
-            navigate("/tareas")
+        async function fetchTarea() {
+            try {
+                const data = await getTareaById(Number(tareaId))
+                setTarea(data)
+            } catch (error) {
+                console.error("Tarea no encontrada:", error)
+                navigate("/tareas")
+            } finally {
+                setIsLoading(false)
+            }
         }
-    }, [tarea, navigate])
 
-    if (!tarea) {
+        fetchTarea()
+    }, [tareaId, navigate])
+
+    if (isLoading || !tarea) {
         return (
             <div className="w-full h-96 flex items-center justify-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -32,8 +43,8 @@ export default function TareaDetail() {
         )
     }
 
-    const clienteNombre = getClienteNombreById(tarea.clienteId)
-    const usuarioNombre = getUsuarioNombreById(tarea.asignadoA)
+    const clienteNombre = tarea.clienteNombre ?? "Cliente no disponible"
+    const usuarioNombre = tarea.asignadoANombre ?? "Usuario no disponible"
 
     return (
         <div className="space-y-6">
@@ -59,9 +70,13 @@ export default function TareaDetail() {
                     <CardContent className="pt-6">
                         <TareaForm
                             tarea={tarea}
-                            clienteId={tarea.clienteId}
+                            clienteId={String(tarea.clienteId)}
                             isEditing={true}
-                            onSuccess={() => setIsEditing(false)}
+                            onSuccess={async () => {
+                                const data = await getTareaById(Number(tareaId))
+                                setTarea(data)
+                                setIsEditing(false)
+                            }}
                             onCancel={() => setIsEditing(false)}
                         />
                     </CardContent>
@@ -96,4 +111,3 @@ export default function TareaDetail() {
         </div>
     )
 }
-

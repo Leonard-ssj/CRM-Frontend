@@ -6,5 +6,5 @@ export interface ContactoDTO {
     puesto?: string;
     notas?: string;
     clienteId: number;
-    clienteNombre: string;
+    clienteNombre?: string;
 }

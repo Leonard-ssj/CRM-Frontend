@@ -1,10 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import type { Contacto } from "@/types"
+import type { ContactoDTO } from "@/types/ContactoDTO"
 import { Mail, Phone, Briefcase, Building2, FileText } from "lucide-react"
-import { getClienteNombreById } from "@/lib/contactosData"
+
 
 interface ContactoDetailCardProps {
-    contacto: Contacto
+    contacto: ContactoDTO
 }
 
 export function ContactoDetailCard({ contacto }: ContactoDetailCardProps) {
@@ -45,7 +45,7 @@ export function ContactoDetailCard({ contacto }: ContactoDetailCardProps) {
                         <Building2 className="h-5 w-5 mr-2 text-muted-foreground" />
                         <div>
                             <p className="text-sm font-medium">Cliente</p>
-                            <p className="text-sm text-muted-foreground">{getClienteNombreById(contacto.clienteId)}</p>
+                            <p className="text-sm text-muted-foreground">{contacto.clienteNombre}</p>
                         </div>
                     </div>
                 </div>

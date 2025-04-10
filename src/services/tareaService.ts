@@ -24,4 +24,19 @@ const deleteTarea = async (id: number) => {
     await api.delete(`/api/clientes/${id}/tareas/${id}`);
 };
 
+// Nuevo método para obtener tareas asignadas al usuario autenticado
+export const getTareasAsignadas = async (): Promise<TareaDTO[]> => {
+    const response = await api.get("/api/tareas/asignadas")
+    return response.data
+}
+
+export const getTareaById = async (id: number): Promise<TareaDTO> => {
+    const response = await api.get(`/api/tareas/${id}`);
+    return response.data;
+}
+
+
+
+
 export { getTareasByCliente, createTarea, updateTarea, deleteTarea };
+

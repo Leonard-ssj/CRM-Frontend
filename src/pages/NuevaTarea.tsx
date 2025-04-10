@@ -1,10 +1,13 @@
 import { TareaForm } from "@/components/tareas/tarea-form"
 import { Button } from "@/components/ui/button"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { ArrowLeft } from "lucide-react"
 
 
+
 export default function NuevaTareaPage() {
+    const navigate = useNavigate()
+    
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -18,7 +21,10 @@ export default function NuevaTareaPage() {
                 </div>
             </div>
             <div className="border rounded-lg p-6 bg-card">
-                <TareaForm />
+                <TareaForm
+                    onSuccess={() => navigate("/tareas")}
+                    onCancel={() => navigate("/tareas")}
+                />
             </div>
         </div>
     )

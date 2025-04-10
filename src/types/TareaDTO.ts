@@ -7,4 +7,7 @@ export interface TareaDTO {
     estado: "pendiente" | "en_progreso" | "completada"; // Corregido a "en_progreso"
     clienteId: number;
     asignadoA: number; // ID del usuario asignado
+
+    clienteNombre?: string;
+    asignadoANombre?: string;
 }

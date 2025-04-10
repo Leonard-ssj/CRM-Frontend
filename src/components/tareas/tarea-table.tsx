@@ -2,18 +2,30 @@
 
 import { useState } from "react"
 import { Link } from "react-router-dom"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow
+} from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue
+} from "@/components/ui/select"
 import { Eye, Search, Plus, Calendar, User } from "lucide-react"
-import type { Tarea } from "@/types"
+import type { TareaDTO } from "@/types/TareaDTO"
 import { formatDateShort } from "@/lib/utils"
-import { getClienteNombreById, getUsuarioNombreById } from "@/lib/tareasData"
 
 interface TareaTableProps {
-    tareas: Tarea[]
+    tareas: TareaDTO[]
     isLoading?: boolean
 }
 
@@ -21,42 +33,43 @@ export function TareaTable({ tareas, isLoading = false }: TareaTableProps) {
     const [searchTerm, setSearchTerm] = useState("")
     const [filtroEstado, setFiltroEstado] = useState<string>("todos")
 
-    // Función para obtener el color del estado
     const getStatusColor = (status: string) => {
-        switch (status) {
+        const normalized = status.toLowerCase().replace("_", " ");
+        switch (normalized) {
             case "pendiente":
-                return "bg-yellow-500 hover:bg-yellow-500"
+                return "bg-yellow-500 hover:bg-yellow-500";
             case "en progreso":
-                return "bg-blue-500 hover:bg-blue-500"
+                return "bg-blue-500 hover:bg-blue-500";
             case "completada":
-                return "bg-green-500 hover:bg-green-500"
+                return "bg-green-500 hover:bg-green-500";
             default:
-                return "bg-gray-500 hover:bg-gray-500"
+                return "bg-gray-500 hover:bg-gray-500";
         }
     }
 
-    // Función para formatear el estado
     const formatStatus = (status: string) => {
-        switch (status) {
+        const normalized = status.toLowerCase().replace("_", " ");
+        switch (normalized) {
             case "pendiente":
-                return "Pendiente"
+                return "Pendiente";
             case "en progreso":
-                return "En progreso"
+                return "En progreso";
             case "completada":
-                return "Completada"
+                return "Completada";
             default:
-                return status
+                return normalized;
         }
     }
 
-    // Filtrar tareas por término de búsqueda y estado
+
     const filteredTareas = tareas.filter(
         (tarea) =>
             (tarea.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                tarea.descripcion.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                getClienteNombreById(tarea.clienteId).toLowerCase().includes(searchTerm.toLowerCase())) &&
-            (filtroEstado === "todos" || tarea.estado === filtroEstado),
+                tarea.descripcion?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                tarea.clienteNombre?.toLowerCase().includes(searchTerm.toLowerCase())) &&
+            (filtroEstado === "todos" || tarea.estado === filtroEstado)
     )
+    
 
     return (
         <div className="space-y-4">
@@ -130,14 +143,16 @@ export function TareaTable({ tareas, isLoading = false }: TareaTableProps) {
                             {filteredTareas.map((tarea) => (
                                 <TableRow key={tarea.id}>
                                     <TableCell>
-                                        <Badge className={`${getStatusColor(tarea.estado)} text-white`}>{formatStatus(tarea.estado)}</Badge>
+                                        <Badge className={`${getStatusColor(tarea.estado)} text-white`}>
+                                            {formatStatus(tarea.estado)}
+                                        </Badge>
                                     </TableCell>
                                     <TableCell className="font-medium">{tarea.titulo}</TableCell>
-                                    <TableCell>{getClienteNombreById(tarea.clienteId)}</TableCell>
+                                    <TableCell>{tarea.clienteNombre ?? "Cliente no encontrado"}</TableCell>
                                     <TableCell>
                                         <div className="flex items-center">
                                             <User className="h-4 w-4 mr-2 text-muted-foreground" />
-                                            {getUsuarioNombreById(tarea.asignadoA)}
+                                            {tarea.asignadoANombre ?? "Usuario no encontrado"}
                                         </div>
                                     </TableCell>
                                     <TableCell>
@@ -162,4 +177,3 @@ export function TareaTable({ tareas, isLoading = false }: TareaTableProps) {
         </div>
     )
 }
-

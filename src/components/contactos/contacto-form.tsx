@@ -1,5 +1,6 @@
 "use client"
 
+import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
@@ -44,6 +45,8 @@ export function ContactoForm({
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [clientes, setClientes] = useState<{ id: string; nombre: string }[]>([])
 
+    const navigate = useNavigate();
+
     // Cargar clientes para el formulario
     useEffect(() => {
         async function fetchClientes() {
@@ -81,10 +84,11 @@ export function ContactoForm({
                 });
                 toast({ title: "Contacto actualizado", description: "El contacto ha sido actualizado correctamente." });
             } else {
-                if (!clienteId) {
+                const finalClienteId = clienteId ?? data.clienteId;
+                if (!finalClienteId) {
                     throw new Error("El clienteId es necesario para crear un contacto.");
                 }
-                await createContacto(Number(clienteId), {
+                await createContacto(Number(finalClienteId), {
                     ...data,
                     clienteId: Number(data.clienteId),
                 });
@@ -93,6 +97,8 @@ export function ContactoForm({
 
             if (onSuccess) {
                 onSuccess();
+            } else {
+                navigate("/contactos");
             }
         } catch (error) {
             console.error(error);
@@ -202,7 +208,18 @@ export function ContactoForm({
                 />
 
                 <div className="flex justify-end gap-4">
-                    <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                            if (onCancel) {
+                                onCancel();
+                            } else {
+                                navigate("/contactos");
+                            }
+                        }}
+                        disabled={isSubmitting}
+                    >
                         Cancelar
                     </Button>
                     <Button type="submit" disabled={isSubmitting}>

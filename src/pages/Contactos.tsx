@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { ContactoTable } from "@/components/contactos/contacto-table"
 import { getAllContactos } from "@/services/contactoService"
 import { ContactoDTO } from "@/types/ContactoDTO"
- 
+
 export default function Contactos() {
     const [contactos, setContactos] = useState<ContactoDTO[]>([])
     const [loading, setLoading] = useState(true)

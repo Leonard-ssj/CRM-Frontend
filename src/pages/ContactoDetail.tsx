@@ -1,36 +1,51 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useParams, useNavigate } from "react-router-dom"
+import { useParams, useNavigate, Link } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { ContactoDetailCard } from "@/components/contactos/contacto-detail-card"
 import { ContactoForm } from "@/components/contactos/contacto-form"
-import { getContactoById } from "@/lib/contactosData"
+import { getContactoById } from "@/services/contactoService" // ✅ ya no desde lib
 import { ArrowLeft, Edit } from "lucide-react"
-import { Link } from "react-router-dom"
+import type { ContactoDTO } from "@/types/ContactoDTO"
+
 
 export default function ContactoDetail() {
     const params = useParams()
     const router = useNavigate()
     const contactoId = params.id as string
 
-    const [contacto, setContacto] = useState(getContactoById(contactoId))
+    const [contacto, setContacto] = useState<ContactoDTO | null>(null)
     const [isEditing, setIsEditing] = useState(false)
+    const [loading, setLoading] = useState(true)
 
-    // Si no existe el contacto, redirigir a la lista
     useEffect(() => {
-        if (!contacto) {
-            router("/contactos")
+        const fetchContacto = async () => {
+            try {
+                const data = await getContactoById(Number(contactoId))
+                setContacto(data)
+            } catch (error) {
+                console.error("Contacto no encontrado:", error)
+                router("/contactos")
+            } finally {
+                setLoading(false)
+            }
         }
-    }, [contacto, router])
 
-    if (!contacto) {
+        fetchContacto()
+    }, [contactoId, router])
+
+    if (loading) {
         return (
             <div className="w-full h-96 flex items-center justify-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
             </div>
         )
+    }
+
+    if (!contacto) {
+        return null
     }
 
     return (
@@ -42,7 +57,7 @@ export default function ContactoDetail() {
                             <ArrowLeft className="h-4 w-4" />
                         </Button>
                     </Link>
-                    <h1 className="text-3xl font-bold tracking-tight">{contacto.nombre}</h1>
+                    <h1 className="text-3xl font-bold tracking-tight"> Contacto de "{contacto.clienteNombre}"</h1>
                 </div>
                 {!isEditing && (
                     <Button onClick={() => setIsEditing(true)}>
@@ -58,7 +73,11 @@ export default function ContactoDetail() {
                         <ContactoForm
                             contacto={contacto}
                             isEditing={true}
-                            onSuccess={() => setIsEditing(false)}
+                            onSuccess={() => {
+                                setIsEditing(false)
+                                // Recargar el contacto actualizado
+                                getContactoById(Number(contactoId)).then(setContacto)
+                            }}
                             onCancel={() => setIsEditing(false)}
                         />
                     </CardContent>
@@ -69,4 +88,3 @@ export default function ContactoDetail() {
         </div>
     )
 }
-

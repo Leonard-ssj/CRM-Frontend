@@ -8,76 +8,71 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Eye, Search, Plus, Calendar, Building2, Edit, Trash } from "lucide-react"
-import type { Evento } from "@/types"
+import type { EventoDTO } from "@/types/EventoDTO"
 import { formatDate } from "@/lib/utils"
-import { getClienteNombreById } from "@/lib/eventosData"
 import { useToast } from "@/components/ui/use-toast"
+import { ConfirmDeleteEvento } from "./confirmDeleteEvento"
+
 
 interface EventoTableProps {
-    eventos: Evento[]
+    eventos: EventoDTO[]
     isLoading?: boolean
-    onDelete?: (id: string) => void
+    onDelete?: (id: number) => void // también cambiamos el id a number
 }
 
 export function EventoTable({ eventos, isLoading = false, onDelete }: EventoTableProps) {
     const [searchTerm, setSearchTerm] = useState("")
     const [filtroTipo, setFiltroTipo] = useState<string>("todos")
     const { toast } = useToast()
+    const [eventoIdAEliminar, setEventoIdAEliminar] = useState<number | null>(null)
 
-    // Función para obtener el color del tipo
     const getTipoColor = (tipo: string) => {
         switch (tipo) {
-            case "reunion":
+            case "REUNION":
                 return "bg-blue-500 hover:bg-blue-500"
-            case "llamada":
+            case "PRESENCIAL":
                 return "bg-green-500 hover:bg-green-500"
-            case "presentacion":
+            case "PRESENTACION":
                 return "bg-purple-500 hover:bg-purple-500"
-            case "otro":
-                return "bg-gray-500 hover:bg-gray-500"
             default:
-                return "bg-primary hover:bg-primary"
+                return "bg-gray-500 hover:bg-gray-500"
         }
     }
 
-    // Función para formatear el tipo
     const formatTipo = (tipo: string) => {
         switch (tipo) {
-            case "reunion":
+            case "REUNION":
                 return "Reunión"
-            case "llamada":
-                return "Llamada"
-            case "presentacion":
+            case "PRESENCIAL":
+                return "Presencial"
+            case "PRESENTACION":
                 return "Presentación"
-            case "otro":
-                return "Otro"
             default:
                 return tipo
         }
     }
+
 
     // Filtrar eventos por término de búsqueda y tipo
     const filteredEventos = eventos.filter(
         (evento) =>
             (evento.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 evento.descripcion?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                (evento.clienteId &&
-                    getClienteNombreById(evento.clienteId).toLowerCase().includes(searchTerm.toLowerCase()))) &&
+                evento.clienteNombre?.toLowerCase().includes(searchTerm.toLowerCase())) &&
             (filtroTipo === "todos" || evento.tipo === filtroTipo),
     )
 
-    // Manejar eliminación de evento
-    const handleDelete = (id: string) => {
-        if (onDelete) {
-            onDelete(id)
-        } else {
-            // Simulación de eliminación
-            toast({
-                title: "Evento eliminado",
-                description: "El evento ha sido eliminado correctamente.",
-            })
-        }
-    }
+
+    // // Manejar eliminación de evento
+    // const handleDelete = (id: number) => {
+    //     if (onDelete) {
+    //         onDelete(id)
+    //         toast({
+    //             title: "Evento eliminado",
+    //             description: "El evento ha sido eliminado correctamente.",
+    //         })
+    //     }
+    // }
 
     return (
         <div className="space-y-4">
@@ -99,10 +94,9 @@ export function EventoTable({ eventos, isLoading = false, onDelete }: EventoTabl
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="todos">Todos los tipos</SelectItem>
-                            <SelectItem value="reunion">Reuniones</SelectItem>
-                            <SelectItem value="llamada">Llamadas</SelectItem>
-                            <SelectItem value="presentacion">Presentaciones</SelectItem>
-                            <SelectItem value="otro">Otros</SelectItem>
+                            <SelectItem value="REUNION">Reuniones</SelectItem>
+                            <SelectItem value="PRESENCIAL">Presenciales</SelectItem>
+                            <SelectItem value="PRESENTACION">Presentaciones</SelectItem>
                         </SelectContent>
                     </Select>
                     <Link to="/eventos/new">
@@ -161,10 +155,10 @@ export function EventoTable({ eventos, isLoading = false, onDelete }: EventoTabl
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        {evento.clienteId ? (
+                                        {evento.clienteNombre ? (
                                             <div className="flex items-center">
                                                 <Building2 className="h-4 w-4 mr-2 text-muted-foreground" />
-                                                {getClienteNombreById(evento.clienteId)}
+                                                {evento.clienteNombre}
                                             </div>
                                         ) : (
                                             <span className="text-muted-foreground">-</span>
@@ -182,7 +176,11 @@ export function EventoTable({ eventos, isLoading = false, onDelete }: EventoTabl
                                                     <Edit className="h-4 w-4" />
                                                 </Button>
                                             </Link>
-                                            <Button variant="ghost" size="icon" onClick={() => handleDelete(evento.id)}>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => setEventoIdAEliminar(evento.id)}
+                                            >
                                                 <Trash className="h-4 w-4 text-destructive" />
                                             </Button>
                                         </div>
@@ -193,7 +191,23 @@ export function EventoTable({ eventos, isLoading = false, onDelete }: EventoTabl
                     </Table>
                 </div>
             )}
+            {eventoIdAEliminar !== null && (
+                <ConfirmDeleteEvento
+                    open={eventoIdAEliminar !== null}
+                    onCancel={() => setEventoIdAEliminar(null)}
+                    onConfirm={() => {
+                        if (onDelete) onDelete(eventoIdAEliminar)
+                        setEventoIdAEliminar(null)
+                        toast({
+                            title: "Evento eliminado",
+                            description: "El evento ha sido eliminado correctamente.",
+                        })
+                    }}
+                />
+            )}
         </div>
     )
 }
+
+
 

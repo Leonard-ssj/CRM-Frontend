@@ -1,28 +1,43 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { Button } from "@/components/ui/button"
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import {
+    Form,
+    FormControl,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
+} from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 import { useToast } from "@/components/ui/use-toast"
-import { clientes } from "@/lib/data"
-import { addEvento, updateEvento } from "@/lib/eventosData"
+import { useNavigate } from "react-router-dom"
+import { getClientes } from "@/services/clienteService"
+import { createEvento, updateEvento } from "@/services/eventosService"
+import { EventoDTO } from "@/types/EventoDTO"
 
-// Esquema de validación
+// Validación con Zod
 const eventoSchema = z.object({
     titulo: z.string().min(2, { message: "El título debe tener al menos 2 caracteres" }),
     fecha: z.string().min(1, { message: "La fecha es requerida" }),
     hora: z.string().min(1, { message: "La hora es requerida" }),
-    tipo: z.enum(["reunion", "llamada", "presentacion", "otro"], {
+    tipo: z.enum(["REUNION", "PRESENTACION", "PRESENCIAL"], {
         required_error: "El tipo es requerido",
     }),
-    descripcion: z.string().optional(),
-    clienteId: z.string().optional(),
+    descripcion: z.string().min(1, { message: "La descripción es requerida" }),
+    clienteId: z.string().min(1, { message: "Debes seleccionar un cliente" }),
 })
 
 type EventoFormValues = z.infer<typeof eventoSchema>
@@ -32,7 +47,7 @@ interface EventoFormProps {
         id: string
         titulo: string
         fecha: string
-        tipo: "reunion" | "llamada" | "presentacion" | "otro"
+        tipo: "REUNION" | "PRESENTACION" | "PRESENCIAL"
         descripcion?: string
         clienteId?: string
     }
@@ -44,12 +59,25 @@ interface EventoFormProps {
 export function EventoForm({ evento, isEditing = false, onSuccess, onCancel }: EventoFormProps) {
     const { toast } = useToast()
     const [isSubmitting, setIsSubmitting] = useState(false)
+    const [clientes, setClientes] = useState<{ id: string; nombre: string }[]>([])
+    const navigate = useNavigate()
 
-    // Formatear fecha y hora para inputs
+    // Cargar clientes desde backend
+    useEffect(() => {
+        async function fetchClientes() {
+            try {
+                const response = await getClientes()
+                setClientes(response.map(c => ({ id: String(c.id), nombre: c.nombre })))
+            } catch (error) {
+                console.error("Error al cargar clientes", error)
+            }
+        }
+        fetchClientes()
+    }, [])
+
     const formatDateForInput = (dateString?: string) => {
         if (!dateString) return new Date().toISOString().split("T")[0]
-        const date = new Date(dateString)
-        return date.toISOString().split("T")[0]
+        return new Date(dateString).toISOString().split("T")[0]
     }
 
     const formatTimeForInput = (dateString?: string) => {
@@ -58,12 +86,11 @@ export function EventoForm({ evento, isEditing = false, onSuccess, onCancel }: E
         return `${date.getHours().toString().padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}`
     }
 
-    // Valores por defecto
     const defaultValues: Partial<EventoFormValues> = {
         titulo: evento?.titulo || "",
         fecha: evento?.fecha ? formatDateForInput(evento.fecha) : formatDateForInput(),
         hora: evento?.fecha ? formatTimeForInput(evento.fecha) : formatTimeForInput(),
-        tipo: evento?.tipo || "reunion",
+        tipo: evento?.tipo || "REUNION",
         descripcion: evento?.descripcion || "",
         clienteId: evento?.clienteId || "",
     }
@@ -74,22 +101,26 @@ export function EventoForm({ evento, isEditing = false, onSuccess, onCancel }: E
     })
 
     async function onSubmit(data: EventoFormValues) {
-        setIsSubmitting(true)
+        setIsSubmitting(true);
         try {
-            // Combinar fecha y hora
-            const fechaHora = new Date(`${data.fecha}T${data.hora}:00`)
+            const [year, month, day] = data.fecha.split("-");
+            const [hour, minute] = data.hora.split(":");
+            const fechaHoraLocal = `${year}-${month}-${day}T${hour}:${minute}:00`;
 
-            // Crear objeto de evento con la fecha combinada
-            const eventoData = {
-                ...data,
-                fecha: fechaHora.toISOString(),
-            }
+            const eventoData: Omit<EventoDTO, "clienteNombre"> = {
+                id: isEditing && evento ? Number(evento.id) : 0,
+                titulo: data.titulo,
+                descripcion: data.descripcion,
+                fecha: fechaHoraLocal,
+                tipo: data.tipo,
+                clienteId: data.clienteId !== "none" ? Number(data.clienteId) : undefined,
+                usuarioId: undefined,
+            };
 
-            // Guardar los datos (simulado)
             if (isEditing && evento) {
-                updateEvento(evento.id, eventoData)
+                await updateEvento(Number(evento.id), eventoData);
             } else {
-                addEvento(eventoData)
+                await createEvento(eventoData);
             }
 
             toast({
@@ -97,21 +128,25 @@ export function EventoForm({ evento, isEditing = false, onSuccess, onCancel }: E
                 description: isEditing
                     ? "Los datos del evento han sido actualizados correctamente."
                     : "El evento ha sido creado correctamente.",
-            })
+            });
 
             if (onSuccess) {
-                onSuccess()
+                onSuccess();
+            } else {
+                navigate("/eventos");
             }
         } catch (error) {
+            console.error(error);
             toast({
                 title: "Error",
                 description: "Ha ocurrido un error. Inténtalo de nuevo.",
                 variant: "destructive",
-            })
+            });
         } finally {
-            setIsSubmitting(false)
+            setIsSubmitting(false);
         }
     }
+
 
     return (
         <Form {...form}>
@@ -172,10 +207,9 @@ export function EventoForm({ evento, isEditing = false, onSuccess, onCancel }: E
                                         </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        <SelectItem value="reunion">Reunión</SelectItem>
-                                        <SelectItem value="llamada">Llamada</SelectItem>
-                                        <SelectItem value="presentacion">Presentación</SelectItem>
-                                        <SelectItem value="otro">Otro</SelectItem>
+                                        <SelectItem value="REUNION">Reunión</SelectItem>
+                                        <SelectItem value="PRESENTACION">Presentación</SelectItem>
+                                        <SelectItem value="PRESENCIAL">Presencial</SelectItem>
                                     </SelectContent>
                                 </Select>
                                 <FormMessage />
@@ -189,7 +223,7 @@ export function EventoForm({ evento, isEditing = false, onSuccess, onCancel }: E
                     name="clienteId"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Cliente (opcional)</FormLabel>
+                            <FormLabel>Cliente</FormLabel>
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                                 <FormControl>
                                     <SelectTrigger>
@@ -197,7 +231,6 @@ export function EventoForm({ evento, isEditing = false, onSuccess, onCancel }: E
                                     </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                    <SelectItem value="none">Sin cliente</SelectItem>
                                     {clientes.map((cliente) => (
                                         <SelectItem key={cliente.id} value={cliente.id}>
                                             {cliente.nombre}
@@ -225,7 +258,12 @@ export function EventoForm({ evento, isEditing = false, onSuccess, onCancel }: E
                 />
 
                 <div className="flex justify-end gap-4">
-                    <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => (onCancel ? onCancel() : navigate("/eventos"))}
+                        disabled={isSubmitting}
+                    >
                         Cancelar
                     </Button>
                     <Button type="submit" disabled={isSubmitting}>
@@ -245,4 +283,3 @@ export function EventoForm({ evento, isEditing = false, onSuccess, onCancel }: E
         </Form>
     )
 }
-
