@@ -33,14 +33,14 @@ export function FloatingActions({
                         <CheckSquare className="mr-2 h-4 w-4" />
                         <span>Nueva Tarea</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={onCreateSeguimiento} className="cursor-pointer">
+                    {/* <DropdownMenuItem onClick={onCreateSeguimiento} className="cursor-pointer">
                         <MessageCircle className="mr-2 h-4 w-4" />
                         <span>Nuevo Seguimiento</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={onCreateNota} className="cursor-pointer">
                         <FileText className="mr-2 h-4 w-4" />
                         <span>Nueva Nota</span>
-                    </DropdownMenuItem>
+                    </DropdownMenuItem> */}
                     <DropdownMenuItem onClick={onCreateEvento} className="cursor-pointer">
                         <Calendar className="mr-2 h-4 w-4" />
                         <span>Nuevo Evento</span>

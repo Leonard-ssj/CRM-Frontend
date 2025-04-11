@@ -8,7 +8,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import { getMonthNames } from "@/lib/calendarUtils"
-import { usuarios } from "@/lib/data"
+import { getUsuarios } from "@/services/usuarioService"
+import { useEffect, useState } from "react"
+import { UsuarioDTO } from "@/types/UsuarioDTO"
+
 
 interface CalendarHeaderProps {
     view: "day" | "week" | "month"
@@ -17,8 +20,6 @@ interface CalendarHeaderProps {
     setSelectedDate: (date: Date) => void
     eventType: string
     setEventType: (type: string) => void
-    usuarioId: string
-    setUsuarioId: (id: string) => void
 }
 
 export function CalendarHeader({
@@ -28,9 +29,15 @@ export function CalendarHeader({
     setSelectedDate,
     eventType,
     setEventType,
-    usuarioId,
-    setUsuarioId,
 }: CalendarHeaderProps) {
+
+    const [usuarios, setUsuarios] = useState<UsuarioDTO[]>([])
+    
+
+    useEffect(() => {
+        getUsuarios().then(setUsuarios)
+    }, [])
+
     // Función para ir al día actual
     const goToToday = () => {
         setSelectedDate(new Date())
@@ -146,25 +153,25 @@ export function CalendarHeader({
                         <SelectContent>
                             <SelectItem value="todos">Todos</SelectItem>
                             <SelectItem value="tarea">Tareas</SelectItem>
-                            <SelectItem value="seguimiento">Seguimientos</SelectItem>
-                            <SelectItem value="nota">Notas</SelectItem>
+                            {/* <SelectItem value="seguimiento">Seguimientos</SelectItem> */}
+                            {/* <SelectItem value="nota">Notas</SelectItem> */}
                             <SelectItem value="evento">Eventos</SelectItem>
                         </SelectContent>
                     </Select>
 
-                    <Select value={usuarioId} onValueChange={setUsuarioId}>
+                    {/* <Select value={usuarioId} onValueChange={setUsuarioId}>
                         <SelectTrigger className="w-[150px]">
                             <SelectValue placeholder="Usuario" />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="todos">Todos</SelectItem>
                             {usuarios.map((usuario) => (
-                                <SelectItem key={usuario.id} value={usuario.id}>
+                                <SelectItem key={usuario.id} value={String(usuario.id)}>
                                     {usuario.nombre}
                                 </SelectItem>
                             ))}
                         </SelectContent>
-                    </Select>
+                    </Select> */}
                 </div>
             </div>
         </div>

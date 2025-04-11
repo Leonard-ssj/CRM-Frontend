@@ -3,26 +3,35 @@
 import { Button } from "@/components/ui/button"
 
 import { useState, useEffect } from "react"
+
 import { CalendarHeader } from "./calendar-header"
 import { CalendarDayView } from "./calendar-day-view"
 import { CalendarWeekView } from "./calendar-week-view"
 import { CalendarMonthView } from "./calendar-month-view"
 import { FloatingActions } from "./floating-actions"
-import { type CalendarEvent, getAllCalendarEvents } from "@/lib/calendarUtils"
+
+import { type CalendarEvent } from "@/lib/calendarUtils"
+import { fetchAllCalendarEvents } from "@/services/calendarService"
+
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { TareaForm } from "@/components/tareas/tarea-form"
 import { SeguimientoForm } from "@/components/seguimientos/seguimiento-form"
 import { NotaForm } from "@/components/notas/nota-form"
 import { EventoForm } from "@/components/calendario/evento-form"
+
 import { CalendarEventCard } from "./calendar-event-card"
 import { useNavigate } from "react-router-dom"
 
-export function CalendarView() {
+interface CalendarViewProps {
+    refreshKey: number
+}
+
+export function CalendarView({ refreshKey }: CalendarViewProps) {
     const navigate = useNavigate()
     const [view, setView] = useState<"day" | "week" | "month">("day")
     const [selectedDate, setSelectedDate] = useState(new Date())
     const [eventType, setEventType] = useState("todos")
-    const [usuarioId, setUsuarioId] = useState("todos")
     const [events, setEvents] = useState<CalendarEvent[]>([])
     const [filteredEvents, setFilteredEvents] = useState<CalendarEvent[]>([])
 
@@ -36,9 +45,17 @@ export function CalendarView() {
 
     // Cargar eventos
     useEffect(() => {
-        const allEvents = getAllCalendarEvents()
-        setEvents(allEvents)
+        async function fetchEvents() {
+            const allEvents = await fetchAllCalendarEvents()
+            setEvents(allEvents)
+        }
+        fetchEvents()
     }, [])
+
+    useEffect(() => {
+        fetchAllCalendarEvents().then(setEvents)
+    }, [refreshKey])
+
 
     // Filtrar eventos
     useEffect(() => {
@@ -49,17 +66,12 @@ export function CalendarView() {
             filtered = filtered.filter((event) => event.type === eventType)
         }
 
-        // Filtrar por usuario
-        if (usuarioId !== "todos") {
-            filtered = filtered.filter(
-                (event) =>
-                    event.usuarioId === usuarioId ||
-                    (event.type === "tarea" && event.id.startsWith("tarea-") && event.usuarioId === usuarioId),
-            )
-        }
+        // Solo permitir tareas y eventos
+        filtered = filtered.filter((event) => event.type === "tarea" || event.type === "evento")
 
         setFilteredEvents(filtered)
-    }, [events, eventType, usuarioId])
+    }, [events, eventType])
+
 
     // Manejar clic en un evento
     const handleEventClick = (event: CalendarEvent) => {
@@ -103,8 +115,7 @@ export function CalendarView() {
         setShowEventoForm(false)
 
         // Recargar eventos (simulación)
-        const updatedEvents = getAllCalendarEvents()
-        setEvents(updatedEvents)
+        fetchAllCalendarEvents().then(setEvents)
     }
 
     // Navegar a la página de detalles según el tipo de evento
@@ -148,8 +159,6 @@ export function CalendarView() {
                 setSelectedDate={setSelectedDate}
                 eventType={eventType}
                 setEventType={setEventType}
-                usuarioId={usuarioId}
-                setUsuarioId={setUsuarioId}
             />
 
             <div className="bg-card border rounded-lg p-4">
@@ -175,7 +184,8 @@ export function CalendarView() {
 
             {/* Diálogo para crear tarea */}
             <Dialog open={showTareaForm} onOpenChange={setShowTareaForm}>
-                <DialogContent className="max-w-3xl">
+                <DialogContent className="max-w-3xl" aria-describedby="tarea-form-description">
+                    <p id="tarea-form-description" className="sr-only">Formulario para crear una nueva tarea</p>
                     <DialogHeader>
                         <DialogTitle>Nueva Tarea</DialogTitle>
                     </DialogHeader>
@@ -185,7 +195,8 @@ export function CalendarView() {
 
             {/* Diálogo para crear seguimiento */}
             <Dialog open={showSeguimientoForm} onOpenChange={setShowSeguimientoForm}>
-                <DialogContent className="max-w-3xl">
+                <DialogContent className="max-w-3xl" aria-describedby="seguimiento-form-description">
+                    <p id="seguimiento-form-description" className="sr-only">Formulario para crear un nuevo seguimiento</p>
                     <DialogHeader>
                         <DialogTitle>Nuevo Seguimiento</DialogTitle>
                     </DialogHeader>
@@ -195,7 +206,8 @@ export function CalendarView() {
 
             {/* Diálogo para crear nota */}
             <Dialog open={showNotaForm} onOpenChange={setShowNotaForm}>
-                <DialogContent className="max-w-3xl">
+                <DialogContent className="max-w-3xl" aria-describedby="nota-form-description">
+                    <p id="nota-form-description" className="sr-only">Formulario para crear una nueva nota</p>
                     <DialogHeader>
                         <DialogTitle>Nueva Nota</DialogTitle>
                     </DialogHeader>
@@ -205,13 +217,15 @@ export function CalendarView() {
 
             {/* Diálogo para crear evento */}
             <Dialog open={showEventoForm} onOpenChange={setShowEventoForm}>
-                <DialogContent className="max-w-3xl">
+                <DialogContent className="max-w-3xl" aria-describedby="evento-form-description">
+                    <p id="evento-form-description" className="sr-only">Formulario para crear un nuevo evento</p>
                     <DialogHeader>
                         <DialogTitle>Nuevo Evento</DialogTitle>
                     </DialogHeader>
                     <EventoForm onSuccess={handleFormSuccess} onCancel={() => setShowEventoForm(false)} />
                 </DialogContent>
             </Dialog>
+
 
             {/* Diálogo para mostrar detalles del evento */}
             <Dialog open={showEventDetails} onOpenChange={setShowEventDetails}>

@@ -5,9 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+
 import { CalendarEventCard } from "./calendar-event-card"
-import { type CalendarEvent, getAllCalendarEvents, getEventsByDate } from "@/lib/calendarUtils"
+
+import { fetchAllCalendarEvents } from "@/services/calendarService"
+import { getEventsByDate, CalendarEvent } from "@/lib/calendarUtils"
+
 import { CalendarView } from "./calendar-view"
+
 import { Plus } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { EventoForm } from "@/components/calendario/evento-form"
@@ -22,9 +27,15 @@ export function CalendarDashboard() {
 
     // Cargar eventos
     useEffect(() => {
-        const allEvents = getAllCalendarEvents()
-        setEvents(allEvents)
+        async function fetchEvents() {
+            const allEvents = await fetchAllCalendarEvents()
+            setEvents(allEvents)
+        }
+
+        fetchEvents()
     }, [])
+
+
 
     // Filtrar eventos por fecha seleccionada
     useEffect(() => {
@@ -35,8 +46,7 @@ export function CalendarDashboard() {
     // Manejar éxito en formulario
     const handleFormSuccess = () => {
         setShowEventoForm(false)
-        const allEvents = getAllCalendarEvents()
-        setEvents(allEvents)
+        fetchAllCalendarEvents().then(setEvents)
     }
 
 
@@ -104,7 +114,7 @@ export function CalendarDashboard() {
                     <TabsContent value="calendar">
                         <Card>
                             <CardContent className="p-4">
-                                <CalendarView />
+                                <CalendarView refreshKey={events.length} />
                             </CardContent>
                         </Card>
                     </TabsContent>
@@ -151,13 +161,17 @@ export function CalendarDashboard() {
 
             {/* Diálogo para crear evento */}
             <Dialog open={showEventoForm} onOpenChange={setShowEventoForm}>
-                <DialogContent className="max-w-3xl">
+                <DialogContent className="max-w-3xl" aria-describedby="evento-dashboard-form-description">
+                    <p id="evento-dashboard-form-description" className="sr-only">
+                        Formulario para crear un nuevo evento desde el calendario principal
+                    </p>
                     <DialogHeader>
                         <DialogTitle>Nuevo Evento</DialogTitle>
                     </DialogHeader>
                     <EventoForm onSuccess={handleFormSuccess} onCancel={() => setShowEventoForm(false)} />
                 </DialogContent>
             </Dialog>
+
         </div>
     )
 }

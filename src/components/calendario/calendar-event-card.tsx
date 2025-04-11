@@ -11,7 +11,6 @@ interface CalendarEventCardProps {
 }
 
 export function CalendarEventCard({ event, onClick }: CalendarEventCardProps) {
-    // Función para obtener el icono según el tipo
     const getIcon = () => {
         switch (event.type) {
             case "evento":
@@ -27,7 +26,6 @@ export function CalendarEventCard({ event, onClick }: CalendarEventCardProps) {
         }
     }
 
-    // Función para obtener el texto del tipo
     const getTypeText = () => {
         switch (event.type) {
             case "evento":
@@ -56,14 +54,8 @@ export function CalendarEventCard({ event, onClick }: CalendarEventCardProps) {
                                 </span>
                             </Badge>
                             {event.estado && (
-                                <Badge variant="outline" className="text-xs">
-                                    {event.estado === "pendiente"
-                                        ? "Pendiente"
-                                        : event.estado === "en progreso"
-                                            ? "En progreso"
-                                            : event.estado === "completada"
-                                                ? "Completada"
-                                                : event.estado}
+                                <Badge variant="outline" className="text-xs capitalize">
+                                    {event.estado.replace("_", " ")}
                                 </Badge>
                             )}
                         </div>
@@ -76,7 +68,7 @@ export function CalendarEventCard({ event, onClick }: CalendarEventCardProps) {
                 <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-muted-foreground">
                     <div className="flex items-center">
                         <Clock className="h-3 w-3 mr-1" />
-                        {event.time.split(" ")[1]}
+                        {new Date(event.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                     </div>
                     {event.clienteName && (
                         <div className="flex items-center">
@@ -95,4 +87,3 @@ export function CalendarEventCard({ event, onClick }: CalendarEventCardProps) {
         </Card>
     )
 }
-
