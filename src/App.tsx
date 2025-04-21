@@ -7,6 +7,7 @@ import Register from "@/pages/auth/Register"
 import NotFound from "@/pages/NotFound"
 import { AuthProvider } from "@/auth/AuthContext"
 import { Toaster } from "@/components/ui/toaster"
+import PagePrincipal from "./pages/page_principal/PagePrincipal"
 
 function App() {
   return (
@@ -22,7 +23,7 @@ function App() {
             {/* Rutas públicas sin MainLayout */}
             <Route path="/auth/login" element={<Login />} />
             <Route path="/auth/register" element={<Register />} />
-            {/* <Route path="/paginainicio" element={<PaginaInicio />} */}
+            <Route path="/inicio" element={<PagePrincipal />} />
 
             {/* Rutas protegidas dentro de MainLayout */}
             <Route
