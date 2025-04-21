@@ -1,34 +1,32 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Clock, UserCircle, Lock, LogIn } from "lucide-react"
 import { formatDate } from "@/lib/utils"
-import { usuarios } from "@/lib/data"
-import { Clock, Mail, UserCircle, LogIn } from "lucide-react"
+import { useAuth } from "@/auth/AuthContext"
 
 export function ActividadReciente() {
-    // Simulamos que el primer usuario está logueado
-    const currentUser = usuarios[0]
+    const { user } = useAuth()
 
-    // Actividades ficticias para mostrar
     const actividades = [
         {
             id: "1",
             tipo: "login",
-            fecha: currentUser.ultimoAcceso || new Date().toISOString(),
+            fecha: user?.ultimoAcceso || new Date().toISOString(),
             descripcion: "Inicio de sesión",
             icono: LogIn,
         },
         {
             id: "2",
             tipo: "perfil",
-            fecha: "2025-03-20T09:15:00Z",
+            fecha: user?.ultimoCambioPerfil || new Date().toISOString(),
             descripcion: "Actualización de perfil",
             icono: UserCircle,
         },
         {
             id: "3",
-            tipo: "email",
-            fecha: "2025-03-18T14:30:00Z",
-            descripcion: "Cambio de correo electrónico",
-            icono: Mail,
+            tipo: "password",
+            fecha: user?.ultimoCambioPassword || new Date().toISOString(),
+            descripcion: "Cambio de contraseña",
+            icono: Lock,
         },
     ]
 
@@ -59,4 +57,3 @@ export function ActividadReciente() {
         </Card>
     )
 }
-

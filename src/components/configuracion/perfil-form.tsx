@@ -5,36 +5,34 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { Button } from "@/components/ui/button"
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import {
+    Form,
+    FormControl,
+    FormDescription,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
+} from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/ui/use-toast"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { getInitials } from "@/lib/utils"
-import { usuarios } from "@/lib/data"
+import { useAuth } from "@/auth/AuthContext"
+import { updatePerfil, updatePassword } from "@/auth/authService"
 
-// Esquema de validación para el formulario de perfil
+// Validaciones
 const perfilSchema = z.object({
-    nombre: z.string().min(2, {
-        message: "El nombre debe tener al menos 2 caracteres.",
-    }),
-    email: z.string().email({
-        message: "Por favor ingresa un correo electrónico válido.",
-    }),
+    nombre: z.string().min(2, { message: "El nombre debe tener al menos 2 caracteres." }),
+    apellido: z.string().min(2, { message: "El apellido debe tener al menos 2 caracteres." }),
 })
 
-// Esquema de validación para el formulario de cambio de contraseña
 const passwordSchema = z
     .object({
-        currentPassword: z.string().min(1, {
-            message: "Por favor ingresa tu contraseña actual.",
-        }),
-        newPassword: z.string().min(8, {
-            message: "La nueva contraseña debe tener al menos 8 caracteres.",
-        }),
-        confirmPassword: z.string().min(8, {
-            message: "Por favor confirma tu nueva contraseña.",
-        }),
+        currentPassword: z.string().min(1, { message: "Por favor ingresa tu contraseña actual." }),
+        newPassword: z.string().min(6, { message: "La nueva contraseña debe tener al menos 6 caracteres." }),
+        confirmPassword: z.string().min(6, { message: "Confirma tu nueva contraseña." }),
     })
     .refine((data) => data.newPassword === data.confirmPassword, {
         message: "Las contraseñas no coinciden.",
@@ -45,23 +43,21 @@ type PerfilFormValues = z.infer<typeof perfilSchema>
 type PasswordFormValues = z.infer<typeof passwordSchema>
 
 export function PerfilForm() {
+    const { user, fetchUser } = useAuth()
     const { toast } = useToast()
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [isChangingPassword, setIsChangingPassword] = useState(false)
 
-    // Simulamos que el primer usuario está logueado
-    const currentUser = usuarios[0]
-
-    // Formulario de perfil
+    // Formulario perfil
     const perfilForm = useForm<PerfilFormValues>({
         resolver: zodResolver(perfilSchema),
         defaultValues: {
-            nombre: currentUser.nombre,
-            email: currentUser.email,
+            nombre: user?.nombre || "",
+            apellido: user?.apellido || "",
         },
     })
 
-    // Formulario de cambio de contraseña
+    // Formulario contraseña
     const passwordForm = useForm<PasswordFormValues>({
         resolver: zodResolver(passwordSchema),
         defaultValues: {
@@ -71,21 +67,20 @@ export function PerfilForm() {
         },
     })
 
-    // Manejar envío del formulario de perfil
-    async function onPerfilSubmit(data: PerfilFormValues) {
+    // Actualizar nombre y apellido
+    const onPerfilSubmit = async (data: PerfilFormValues) => {
         setIsSubmitting(true)
         try {
-            // Simulación de envío de datos
-            await new Promise((resolve) => setTimeout(resolve, 1000))
-
+            await updatePerfil(data)
+            await fetchUser() // Refrescar info
             toast({
                 title: "Perfil actualizado",
-                description: "Tu información de perfil ha sido actualizada correctamente.",
+                description: "Tu información fue guardada correctamente.",
             })
-        } catch (error) {
+        } catch (error: any) {
             toast({
                 title: "Error",
-                description: "Ha ocurrido un error al actualizar tu perfil.",
+                description: error?.response?.data?.message || "No se pudo actualizar el perfil.",
                 variant: "destructive",
             })
         } finally {
@@ -93,41 +88,36 @@ export function PerfilForm() {
         }
     }
 
-    // Manejar envío del formulario de cambio de contraseña
-    async function onPasswordSubmit(data: PasswordFormValues) {
+    // Actualizar contraseña
+    const onPasswordSubmit = async (data: PasswordFormValues) => {
         setIsSubmitting(true)
         try {
-            // Simulación de envío de datos
-            await new Promise((resolve) => setTimeout(resolve, 1000))
-
+            await updatePassword(data)
             toast({
                 title: "Contraseña actualizada",
-                description: "Tu contraseña ha sido actualizada correctamente.",
+                description: "Tu contraseña ha sido cambiada con éxito.",
             })
-
-            // Resetear el formulario
-            passwordForm.reset({
-                currentPassword: "",
-                newPassword: "",
-                confirmPassword: "",
-            })
-
-            // Ocultar el formulario de cambio de contraseña
+            passwordForm.reset()
             setIsChangingPassword(false)
-        } catch (error) {
-            toast({
-                title: "Error",
-                description: "Ha ocurrido un error al actualizar tu contraseña.",
-                variant: "destructive",
+        } catch (error: any) {
+            const message = error?.response?.data?.message || "Error al actualizar contraseña."
+
+            // ✅ Mostrar mensaje si el backend devuelve un error específico
+            passwordForm.setError("currentPassword", {
+                type: "manual",
+                message: message === "La contraseña actual es incorrecta."
+                    ? "La contraseña actual es incorrecta."
+                    : "Ocurrió un error al validar tu contraseña.",
             })
         } finally {
             setIsSubmitting(false)
         }
     }
+
 
     return (
         <div className="space-y-6">
-            {/* Tarjeta de perfil */}
+            {/* Tarjeta Perfil */}
             <Card>
                 <CardHeader>
                     <CardTitle>Información de perfil</CardTitle>
@@ -137,13 +127,16 @@ export function PerfilForm() {
                     <div className="flex flex-col md:flex-row gap-6 items-start">
                         <div className="flex flex-col items-center gap-2">
                             <Avatar className="h-24 w-24">
-                                <AvatarImage src="/placeholder.svg?height=96&width=96" alt={currentUser.nombre} />
-                                <AvatarFallback className="text-lg">{getInitials(currentUser.nombre)}</AvatarFallback>
+                                <AvatarImage src="/placeholder.svg?height=96&width=96" alt={user?.nombre} />
+                                <AvatarFallback className="text-lg">
+                                    {getInitials(user?.nombre || "U")}
+                                </AvatarFallback>
                             </Avatar>
                             <p className="text-sm text-muted-foreground">
-                                {currentUser.rol === "ADMIN" ? "Administrador" : "Vendedor"}
+                                {user?.rol === "ADMIN" ? "Administrador" : "Usuario"}
                             </p>
                         </div>
+
                         <div className="flex-1">
                             <Form {...perfilForm}>
                                 <form onSubmit={perfilForm.handleSubmit(onPerfilSubmit)} className="space-y-4">
@@ -152,9 +145,9 @@ export function PerfilForm() {
                                         name="nombre"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Nombre completo</FormLabel>
+                                                <FormLabel>Nombre</FormLabel>
                                                 <FormControl>
-                                                    <Input placeholder="Tu nombre completo" {...field} />
+                                                    <Input placeholder="Nombre" {...field} />
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>
@@ -162,17 +155,21 @@ export function PerfilForm() {
                                     />
                                     <FormField
                                         control={perfilForm.control}
-                                        name="email"
+                                        name="apellido"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Correo electrónico</FormLabel>
+                                                <FormLabel>Apellido</FormLabel>
                                                 <FormControl>
-                                                    <Input type="email" placeholder="tu@ejemplo.com" {...field} />
+                                                    <Input placeholder="Apellido" {...field} />
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>
                                         )}
                                     />
+                                    {/* <FormItem>
+                                        <FormLabel>Correo electrónico</FormLabel>
+                                        <Input value={user?.email || ""} disabled />
+                                    </FormItem> */}
                                     <Button type="submit" disabled={isSubmitting}>
                                         {isSubmitting ? "Guardando..." : "Guardar cambios"}
                                     </Button>
@@ -183,7 +180,7 @@ export function PerfilForm() {
                 </CardContent>
             </Card>
 
-            {/* Tarjeta de cambio de contraseña */}
+            {/* Tarjeta Contraseña */}
             <Card>
                 <CardHeader>
                     <CardTitle>Cambiar contraseña</CardTitle>
@@ -217,7 +214,6 @@ export function PerfilForm() {
                                             <FormControl>
                                                 <Input type="password" placeholder="••••••••" {...field} />
                                             </FormControl>
-                                            <FormDescription>La contraseña debe tener al menos 8 caracteres.</FormDescription>
                                             <FormMessage />
                                         </FormItem>
                                     )}
@@ -256,4 +252,3 @@ export function PerfilForm() {
         </div>
     )
 }
-

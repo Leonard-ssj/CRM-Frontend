@@ -22,6 +22,7 @@ function App() {
             {/* Rutas públicas sin MainLayout */}
             <Route path="/auth/login" element={<Login />} />
             <Route path="/auth/register" element={<Register />} />
+            {/* <Route path="/paginainicio" element={<PaginaInicio />} */}
 
             {/* Rutas protegidas dentro de MainLayout */}
             <Route

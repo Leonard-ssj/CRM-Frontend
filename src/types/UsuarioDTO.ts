@@ -5,4 +5,7 @@ export interface UsuarioDTO {
     rol: string
     createdAt?: string
     updatedAt?: string
+    ultimoAcceso?: string
+    ultimoCambioPerfil?: string
+    ultimoCambioPassword?: string
 }
