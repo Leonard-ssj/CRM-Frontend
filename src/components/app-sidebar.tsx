@@ -76,7 +76,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   // Cerrar sesión
   const handleLogout = () => {
     logout()
-    navigate("/auth/login")
+    navigate("/inicio")
   }
 
   // Obtener iniciales del nombre

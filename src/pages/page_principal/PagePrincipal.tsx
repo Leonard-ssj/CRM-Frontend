@@ -7,6 +7,17 @@ import { User, ChevronLeft, ChevronRight, Phone } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { ThemeToggle } from "@/components/layout/ThemeToggle"
+import Galary from "@/img/Muestra1.png";
+import Galary2 from "@/img/Muestra2.png";
+import Galary3 from "@/img/Muestra3.png";
+import empre1 from "@/img/IBM.jpg";
+import empre2 from "@/img/ORACLE.jpeg";
+import empre3 from "@/img/CISCO.png";
+import empre4 from "@/img/Nesus.png";
+import empre5 from "@/img/HP.jpeg";
+import empre6 from "@/img/lenovo.jpeg";
+import empre7 from "@/img/MOTOROLA.jpg";
+import equipo from "@/img/Equipo.jpg";
 
 export default function LandingPage() {
     const { theme, setTheme } = useTheme()
@@ -15,32 +26,32 @@ export default function LandingPage() {
     const slides = [
         {
             id: 1,
-            image: "/placeholder.svg?height=500&width=800",
+            image: Galary,
             title: "Gestión de Clientes Simplificada",
             description: "Administre sus clientes de manera eficiente con nuestra interfaz intuitiva",
         },
         {
             id: 2,
-            image: "/placeholder.svg?height=500&width=800",
+            image: Galary2,
             title: "Análisis de Datos en Tiempo Real",
             description: "Obtenga insights valiosos con nuestros paneles de análisis avanzados",
         },
         {
             id: 3,
-            image: "/placeholder.svg?height=500&width=800",
+            image: Galary3,
             title: "Automatización de Procesos",
             description: "Optimice sus flujos de trabajo con nuestras herramientas de automatización",
         },
     ]
 
     const companies = [
-        { name: "IBM", logo: "/placeholder.svg?height=80&width=120" },
-        { name: "Oracle", logo: "/placeholder.svg?height=80&width=120" },
-        { name: "Cisco", logo: "/placeholder.svg?height=80&width=120" },
-        { name: "Nessus", logo: "/placeholder.svg?height=80&width=120" },
-        { name: "HP", logo: "/placeholder.svg?height=80&width=120" },
-        { name: "Lenovo", logo: "/placeholder.svg?height=80&width=120" },
-        { name: "Motorola", logo: "/placeholder.svg?height=80&width=120" },
+        { name: "IBM", logo: empre1 },
+        { name: "Oracle", logo: empre2 },
+        { name: "Cisco", logo: empre3 },
+        { name: "Nessus", logo: empre4 },
+        { name: "HP", logo: empre5 },
+        { name: "Lenovo", logo: empre6 },
+        { name: "Motorola", logo: empre7 },
     ]
 
     const nextSlide = () => {
@@ -55,23 +66,17 @@ export default function LandingPage() {
         <div className="flex flex-col min-h-screen">
             {/* Header */}
             <header className="sticky top-0 z-10 bg-background border-b">
+
                 <div className="container mx-auto px-4 py-4 flex justify-between items-center">
                     <div className="flex items-center">
-                        <h1 className="text-2xl font-bold mr-10">CRM System</h1>
+                        <h1 className="text-2xl font-bold mr-10 font-inria-serif">CRM A & L </h1>
                         <nav className="hidden md:flex space-x-6">
-                            <Link to="#mision" className="hover:text-primary transition-colors">
-                                Misión
-                            </Link>
-                            <Link to="#vision" className="hover:text-primary transition-colors">
-                                Visión
-                            </Link>
-                            <Link to="#nosotros" className="hover:text-primary transition-colors">
-                                Nosotros
-                            </Link>
-                            <Link to="#empresas" className="hover:text-primary transition-colors">
-                                Empresas
-                            </Link>
+                            <a href="#mision" className="hover:text-primary transition-colors">Misión</a>
+                            <a href="#vision" className="hover:text-primary transition-colors">Visión</a>
+                            <a href="#nosotros" className="hover:text-primary transition-colors">Nosotros</a>
+                            <a href="#empresas" className="hover:text-primary transition-colors">Empresas</a>
                         </nav>
+
                     </div>
                     <div className="flex items-center space-x-4">
                         <ThemeToggle />
@@ -182,7 +187,7 @@ export default function LandingPage() {
                                 </p>
                             </div>
                             <div className="rounded-lg overflow-hidden shadow-lg">
-                                <img src="/placeholder.svg?height=400&width=600" alt="Nuestro equipo" className="w-full h-auto" />
+                                <img src={equipo} alt="Nuestro equipo" className="w-full h-auto" />
                             </div>
                         </div>
                     </div>
@@ -196,7 +201,11 @@ export default function LandingPage() {
                             {companies.map((company, index) => (
                                 <Card key={index} className="p-4 w-full max-w-[150px] flex items-center justify-center">
                                     <div className="text-center">
-                                        <img src={company.logo || "/placeholder.svg"} alt={company.name} className="h-12 mx-auto mb-2" />
+                                        <img
+                                            src={company.logo || "/placeholder.svg"}
+                                            alt={company.name}
+                                            className="h-24 w-24 mx-auto mb-2 object-cover rounded-full shadow-md"
+                                        />
                                         <p className="font-medium">{company.name}</p>
                                     </div>
                                 </Card>
@@ -212,11 +221,11 @@ export default function LandingPage() {
                     <div className="grid md:grid-cols-3 gap-8">
                         <div>
                             <h3 className="text-xl font-bold mb-4">Contáctanos</h3>
-                            <p className="mb-2">Email: info@crmsystem.com</p>
-                            <p className="mb-2">Teléfono: +1 (555) 123-4567</p>
+                            <p className="mb-2">Email: angel&leo@gmail.com</p>
+                            <p className="mb-2">Teléfono: +52 (55) 3277 9157</p>
                             <div className="mt-4">
                                 <a
-                                    href="https://wa.me/15551234567"
+                                    href="https://wa.me/qr/6R3FJGYOHW6AD1"
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="inline-flex items-center bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md transition-colors"
@@ -228,32 +237,24 @@ export default function LandingPage() {
                         </div>
                         <div>
                             <h3 className="text-xl font-bold mb-4">Ubicación</h3>
-                            <p className="mb-2">Av. Tecnológica 123</p>
-                            <p className="mb-2">Ciudad Innovación, CP 12345</p>
+                            <p className="mb-2">Ermita Iztapalapa 557</p>
+                            <p className="mb-2">Granjas Esmeralda, Iztapalapa, 09810</p>
                             <p>México</p>
                         </div>
                         <div>
                             <h3 className="text-xl font-bold mb-4">Enlaces Rápidos</h3>
                             <ul className="space-y-2">
                                 <li>
-                                    <Link to="#mision" className="hover:underline">
-                                        Misión
-                                    </Link>
+                                    <a href="#mision" className="hover:text-primary transition-colors">Misión</a>
                                 </li>
                                 <li>
-                                    <Link to="#vision" className="hover:underline">
-                                        Visión
-                                    </Link>
+                                    <a href="#vision" className="hover:text-primary transition-colors">Visión</a>
                                 </li>
                                 <li>
-                                    <Link to="#nosotros" className="hover:underline">
-                                        Nosotros
-                                    </Link>
+                                    <a href="#nosotros" className="hover:text-primary transition-colors">Nosotros</a>
                                 </li>
                                 <li>
-                                    <Link to="#empresas" className="hover:underline">
-                                        Empresas
-                                    </Link>
+                                    <a href="#empresas" className="hover:text-primary transition-colors">Empresas</a>
                                 </li>
                                 <li>
                                     <Link to="/auth/login" className="hover:underline">
@@ -264,7 +265,7 @@ export default function LandingPage() {
                         </div>
                     </div>
                     <div className="mt-8 pt-8 border-t border-primary-foreground/20 text-center">
-                        <p>&copy; {new Date().getFullYear()} CRM System. Todos los derechos reservados.</p>
+                        <p>&copy; {new Date().getFullYear()} CRM A & L. Todos los derechos reservados.</p>
                     </div>
                 </div>
             </footer>

@@ -43,7 +43,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const logout = () => {
         clearTokens();
         setUser(null);
-        navigate("/auth/login");
+        navigate("/inicio");
     };
 
     useEffect(() => {

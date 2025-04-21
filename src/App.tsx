@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom"
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
 import { ThemeProvider } from "@/lib/theme"
 import MainLayout from "@/components/layout/MainLayout"
 import AppRoutes from "@/routes"
@@ -21,6 +21,7 @@ function App() {
 
           <Routes>
             {/* Rutas públicas sin MainLayout */}
+            <Route path="/" element={<Navigate to="/inicio" replace />} />
             <Route path="/auth/login" element={<Login />} />
             <Route path="/auth/register" element={<Register />} />
             <Route path="/inicio" element={<PagePrincipal />} />
