@@ -9,7 +9,11 @@ interface User {
     apellido: string;
     email: string;
     rol: string;
+    ultimoAcceso?: string;
+    ultimoCambioPerfil?: string;
+    ultimoCambioPassword?: string;
 }
+
 
 interface AuthContextType {
     user: User | null;
